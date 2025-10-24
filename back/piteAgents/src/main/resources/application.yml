@@ -1,0 +1,99 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: piteAgents
+  
+  # ===========================
+  # 数据库配置
+  # ===========================
+  datasource:
+    url: jdbc:mysql://localhost:3306/pite_agents?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root@1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # 连接池配置
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  # ===========================
+  # Flyway 数据库迁移配置
+  # ===========================
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    encoding: UTF-8
+    validate-on-migrate: true
+
+# ===========================
+# MyBatis-Plus 配置
+# ===========================
+mybatis-plus:
+  # Mapper XML 文件路径
+  mapper-locations: classpath*:mapper/**/*.xml
+  # 实体类路径
+  type-aliases-package: pox.com.piteagents.entity.po
+  # 全局配置
+  global-config:
+    # 关闭 Banner
+    banner: false
+    db-config:
+      # 主键类型（自增）
+      id-type: auto
+      # 逻辑删除字段名
+      logic-delete-field: deletedAt
+      # 逻辑删除值（deleted_at 字段设置为当前时间）
+      logic-delete-value: now()
+      # 逻辑未删除值
+      logic-not-delete-value: 'NULL'
+      # 表名前缀（如果需要）
+      # table-prefix: t_
+  # MyBatis 配置
+  configuration:
+    # 驼峰命名转换
+    map-underscore-to-camel-case: true
+    # 打印 SQL（开发环境）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 缓存配置
+    cache-enabled: true
+    # 延迟加载
+    lazy-loading-enabled: false
+    # 默认执行器类型
+    default-executor-type: reuse
+
+# ===========================
+# 智谱AI配置
+# ===========================
+zhipu:
+  # API Key（从智谱AI开放平台获取）
+  api-key: c3a5ebfa22834fdfb7047a3a67fcbf47.hah0oJ97O9a6TVOd
+  # API Base URL
+  base-url: https://open.bigmodel.cn/api/paas/v4
+  # 默认模型（推荐使用GLM-4.6）
+  default-model: glm-4.6
+  # 请求超时时间（秒）
+  timeout: 60
+  # 默认温度参数（0.0-1.0，值越高输出越随机）
+  default-temperature: 0.7
+  # 最大token数
+  max-tokens: 2000
+
+# ===========================
+# 日志配置
+# ===========================
+logging:
+  level:
+    root: INFO
+    pox.com.piteagents: DEBUG
+    # MyBatis SQL 日志
+    pox.com.piteagents.mapper: DEBUG
+    com.baomidou.mybatisplus: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+

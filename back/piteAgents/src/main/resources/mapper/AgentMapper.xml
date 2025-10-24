@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pox.com.piteagents.mapper.AgentMapper">
+
+    <!-- Agent 结果映射 -->
+    <resultMap id="BaseResultMap" type="pox.com.piteagents.entity.po.AgentPO">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="avatar" property="avatar" jdbcType="VARCHAR"/>
+        <result column="category" property="category" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="system_prompt" property="systemPrompt" jdbcType="VARCHAR"/>
+        <result column="role_prompt" property="rolePrompt" jdbcType="VARCHAR"/>
+        <result column="is_active" property="isActive" jdbcType="BOOLEAN"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- Agent 带配置的结果映射 -->
+    <resultMap id="AgentWithConfigMap" type="pox.com.piteagents.entity.po.AgentPO" extends="BaseResultMap">
+        <association property="config" javaType="pox.com.piteagents.entity.po.AgentConfigPO">
+            <id column="config_id" property="id" jdbcType="BIGINT"/>
+            <result column="config_model" property="model" jdbcType="VARCHAR"/>
+            <result column="config_temperature" property="temperature" jdbcType="DECIMAL"/>
+            <result column="config_max_tokens" property="maxTokens" jdbcType="INTEGER"/>
+            <result column="config_top_p" property="topP" jdbcType="DECIMAL"/>
+            <result column="config_extra_params" property="extraParams" jdbcType="VARCHAR"/>
+        </association>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, name, description, avatar, category, status, system_prompt, role_prompt,
+        is_active, created_at, updated_at, deleted_at
+    </sql>
+
+    <!-- 查询 Agent 及其配置 -->
+    <select id="selectAgentWithConfig" resultMap="AgentWithConfigMap">
+        SELECT
+            a.id, a.name, a.description, a.avatar, a.category, a.status,
+            a.system_prompt, a.role_prompt, a.is_active, a.created_at, a.updated_at, a.deleted_at,
+            ac.id AS config_id,
+            ac.model AS config_model,
+            ac.temperature AS config_temperature,
+            ac.max_tokens AS config_max_tokens,
+            ac.top_p AS config_top_p,
+            ac.extra_params AS config_extra_params
+        FROM agent a
+        LEFT JOIN agent_config ac ON a.id = ac.agent_id
+        WHERE a.id = #{id}
+          AND a.deleted_at IS NULL
+    </select>
+
+    <!-- 复杂搜索查询（支持多字段模糊搜索） -->
+    <select id="complexSearch" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        <where>
+            deleted_at IS NULL
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%')
+                OR description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="isActive != null">
+                AND is_active = #{isActive}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计查询 -->
+    <select id="countByConditions" resultType="long">
+        SELECT COUNT(*)
+        FROM agent
+        <where>
+            deleted_at IS NULL
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!-- 批量插入 -->
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO agent (name, description, avatar, category, status, system_prompt, role_prompt, is_active)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.name}, #{item.description}, #{item.avatar}, #{item.category},
+             #{item.status}, #{item.systemPrompt}, #{item.rolePrompt}, #{item.isActive})
+        </foreach>
+    </insert>
+
+    <!-- 软删除 -->
+    <update id="softDelete">
+        UPDATE agent
+        SET deleted_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 批量软删除 -->
+    <update id="batchSoftDelete">
+        UPDATE agent
+        SET deleted_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>
+

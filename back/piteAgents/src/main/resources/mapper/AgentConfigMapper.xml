@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pox.com.piteagents.mapper.AgentConfigMapper">
+
+    <!-- Agent 配置结果映射 -->
+    <resultMap id="BaseResultMap" type="pox.com.piteagents.entity.po.AgentConfigPO">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="agent_id" property="agentId" jdbcType="BIGINT"/>
+        <result column="model" property="model" jdbcType="VARCHAR"/>
+        <result column="temperature" property="temperature" jdbcType="DECIMAL"/>
+        <result column="max_tokens" property="maxTokens" jdbcType="INTEGER"/>
+        <result column="top_p" property="topP" jdbcType="DECIMAL"/>
+        <result column="extra_params" property="extraParams" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, agent_id, model, temperature, max_tokens, top_p, extra_params, created_at, updated_at
+    </sql>
+
+    <!-- 根据 Agent ID 查询配置 -->
+    <select id="selectByAgentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_config
+        WHERE agent_id = #{agentId}
+    </select>
+
+    <!-- 批量更新配置 -->
+    <update id="batchUpdateConfig">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE agent_config
+            SET model = #{item.model},
+                temperature = #{item.temperature},
+                max_tokens = #{item.maxTokens},
+                top_p = #{item.topP},
+                extra_params = #{item.extraParams},
+                updated_at = NOW()
+            WHERE agent_id = #{item.agentId}
+        </foreach>
+    </update>
+
+</mapper>
+

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pox.com.piteagents.mapper.ConversationMessageMapper">
+
+    <!-- 消息结果映射 -->
+    <resultMap id="BaseResultMap" type="pox.com.piteagents.entity.po.ConversationMessagePO">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="session_id" property="sessionId" jdbcType="BIGINT"/>
+        <result column="role" property="role" jdbcType="VARCHAR"/>
+        <result column="content" property="content" jdbcType="VARCHAR"/>
+        <result column="prompt_tokens" property="promptTokens" jdbcType="INTEGER"/>
+        <result column="completion_tokens" property="completionTokens" jdbcType="INTEGER"/>
+        <result column="total_tokens" property="totalTokens" jdbcType="INTEGER"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, session_id, role, content, prompt_tokens, completion_tokens, total_tokens, created_at
+    </sql>
+
+    <!-- 查询会话的所有消息 -->
+    <select id="selectBySessionId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM conversation_message
+        WHERE session_id = #{sessionId}
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 查询会话的最近 N 条消息 -->
+    <select id="selectRecentMessages" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM conversation_message
+        WHERE session_id = #{sessionId}
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 统计会话的消息数量 -->
+    <select id="countBySessionId" resultType="long">
+        SELECT COUNT(*)
+        FROM conversation_message
+        WHERE session_id = #{sessionId}
+    </select>
+
+    <!-- 统计会话的 Token 使用量 -->
+    <select id="sumTokensBySessionId" resultType="long">
+        SELECT COALESCE(SUM(total_tokens), 0)
+        FROM conversation_message
+        WHERE session_id = #{sessionId}
+    </select>
+
+    <!-- 批量插入消息 -->
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO conversation_message (session_id, role, content, prompt_tokens, completion_tokens, total_tokens)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.sessionId}, #{item.role}, #{item.content},
+             #{item.promptTokens}, #{item.completionTokens}, #{item.totalTokens})
+        </foreach>
+    </insert>
+
+    <!-- 删除会话的所有消息 -->
+    <delete id="deleteBySessionId">
+        DELETE FROM conversation_message
+        WHERE session_id = #{sessionId}
+    </delete>
+
+</mapper>
+

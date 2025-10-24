@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pox.com.piteagents.mapper.ConversationSessionMapper">
+
+    <!-- 会话结果映射 -->
+    <resultMap id="BaseResultMap" type="pox.com.piteagents.entity.po.ConversationSessionPO">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="agent_id" property="agentId" jdbcType="BIGINT"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="summary" property="summary" jdbcType="VARCHAR"/>
+        <result column="message_count" property="messageCount" jdbcType="INTEGER"/>
+        <result column="total_tokens" property="totalTokens" jdbcType="INTEGER"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 会话带 Agent 信息的结果映射 -->
+    <resultMap id="SessionWithAgentMap" type="pox.com.piteagents.entity.po.ConversationSessionPO" extends="BaseResultMap">
+        <result column="agent_name" property="agentName" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, agent_id, title, summary, message_count, total_tokens, created_at, updated_at, deleted_at
+    </sql>
+
+    <!-- 查询会话及 Agent 名称 -->
+    <select id="selectSessionWithAgent" resultMap="SessionWithAgentMap">
+        SELECT
+            s.id, s.agent_id, s.title, s.summary, s.message_count, s.total_tokens,
+            s.created_at, s.updated_at, s.deleted_at,
+            a.name AS agent_name
+        FROM conversation_session s
+        LEFT JOIN agent a ON s.agent_id = a.id
+        WHERE s.id = #{sessionId}
+          AND s.deleted_at IS NULL
+    </select>
+
+    <!-- 分页查询会话列表（带 Agent 名称） -->
+    <select id="selectSessionsWithAgentName" resultMap="SessionWithAgentMap">
+        SELECT
+            s.id, s.agent_id, s.title, s.summary, s.message_count, s.total_tokens,
+            s.created_at, s.updated_at, s.deleted_at,
+            a.name AS agent_name
+        FROM conversation_session s
+        LEFT JOIN agent a ON s.agent_id = a.id
+        <where>
+            s.deleted_at IS NULL
+            <if test="agentId != null">
+                AND s.agent_id = #{agentId}
+            </if>
+        </where>
+        ORDER BY s.updated_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计会话的 Token 使用总量 -->
+    <select id="sumTotalTokensByAgentId" resultType="long">
+        SELECT COALESCE(SUM(total_tokens), 0)
+        FROM conversation_session
+        WHERE agent_id = #{agentId}
+          AND deleted_at IS NULL
+    </select>
+
+    <!-- 软删除会话 -->
+    <update id="softDelete">
+        UPDATE conversation_session
+        SET deleted_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 清理过期会话（软删除） -->
+    <update id="cleanExpiredSessions">
+        UPDATE conversation_session
+        SET deleted_at = NOW()
+        WHERE created_at &lt; #{expireDate}
+          AND deleted_at IS NULL
+    </update>
+
+</mapper>
+

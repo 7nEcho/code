@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pox.com.piteagents.mapper.KnowledgeBaseMapper">
+
+    <!-- 知识库结果映射 -->
+    <resultMap id="BaseResultMap" type="pox.com.piteagents.entity.po.KnowledgeBasePO">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="content" property="content" jdbcType="LONGVARCHAR"/>
+        <result column="content_type" property="contentType" jdbcType="VARCHAR"/>
+        <result column="char_count" property="charCount" jdbcType="INTEGER"/>
+        <result column="file_path" property="filePath" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列（不包含 content 大字段） -->
+    <sql id="Base_Column_List">
+        id, name, description, content_type, char_count, file_path, created_at, updated_at
+    </sql>
+
+    <!-- 完整列（包含 content） -->
+    <sql id="Full_Column_List">
+        id, name, description, content, content_type, char_count, file_path, created_at, updated_at
+    </sql>
+
+    <!-- 查询知识库列表（不包含 content） -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM knowledge_base
+        <where>
+            <if test="contentType != null and contentType != ''">
+                AND content_type = #{contentType}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 查询知识库详情（包含 content） -->
+    <select id="selectByIdWithContent" resultMap="BaseResultMap">
+        SELECT <include refid="Full_Column_List"/>
+        FROM knowledge_base
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据 Agent ID 查询关联的知识库 -->
+    <select id="selectKnowledgeByAgentId" resultMap="BaseResultMap">
+        SELECT
+            k.id, k.name, k.description, k.content_type, k.char_count, k.file_path,
+            k.created_at, k.updated_at
+        FROM knowledge_base k
+        INNER JOIN agent_knowledge ak ON k.id = ak.knowledge_id
+        WHERE ak.agent_id = #{agentId}
+          AND ak.is_enabled = TRUE
+        ORDER BY ak.priority DESC
+    </select>
+
+    <!-- 根据 Agent ID 查询知识库内容（用于构建上下文） -->
+    <select id="selectKnowledgeContentByAgentId" resultType="string">
+        SELECT k.content
+        FROM knowledge_base k
+        INNER JOIN agent_knowledge ak ON k.id = ak.knowledge_id
+        WHERE ak.agent_id = #{agentId}
+          AND ak.is_enabled = TRUE
+        ORDER BY ak.priority DESC
+    </select>
+
+    <!-- 全文搜索知识库 -->
+    <select id="fullTextSearch" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM knowledge_base
+        WHERE MATCH(content) AGAINST(#{keyword} IN NATURAL LANGUAGE MODE)
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
+

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pox.com.piteagents.mapper.ToolDefinitionMapper">
+
+    <!-- 工具定义结果映射 -->
+    <resultMap id="BaseResultMap" type="pox.com.piteagents.entity.po.ToolDefinitionPO">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="endpoint" property="endpoint" jdbcType="VARCHAR"/>
+        <result column="method" property="method" jdbcType="VARCHAR"/>
+        <result column="parameters" property="parameters" jdbcType="VARCHAR"/>
+        <result column="headers" property="headers" jdbcType="VARCHAR"/>
+        <result column="timeout" property="timeout" jdbcType="INTEGER"/>
+        <result column="retry_count" property="retryCount" jdbcType="INTEGER"/>
+        <result column="is_active" property="isActive" jdbcType="BOOLEAN"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, name, description, endpoint, method, parameters, headers, timeout, retry_count,
+        is_active, created_at, updated_at
+    </sql>
+
+    <!-- 查询所有启用的工具 -->
+    <select id="selectActiveTools" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM tool_definition
+        WHERE is_active = TRUE
+        ORDER BY name ASC
+    </select>
+
+    <!-- 根据 Agent ID 查询关联的工具 -->
+    <select id="selectToolsByAgentId" resultMap="BaseResultMap">
+        SELECT
+            t.id, t.name, t.description, t.endpoint, t.method, t.parameters, t.headers,
+            t.timeout, t.retry_count, t.is_active, t.created_at, t.updated_at
+        FROM tool_definition t
+        INNER JOIN agent_tool at ON t.id = at.tool_id
+        WHERE at.agent_id = #{agentId}
+          AND at.is_enabled = TRUE
+          AND t.is_active = TRUE
+        ORDER BY at.sort_order ASC
+    </select>
+
+</mapper>
+
