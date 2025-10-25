@@ -20,7 +20,7 @@ import pox.com.piteagents.service.IToolService;
 @RestController
 @RequestMapping("/api/tools")
 @RequiredArgsConstructor
-public class ToolController {
+public class FunctionToolController {
 
     private final IToolService toolService;
 

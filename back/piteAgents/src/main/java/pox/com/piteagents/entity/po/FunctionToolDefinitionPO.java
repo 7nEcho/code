@@ -40,6 +40,17 @@ public class ToolDefinitionPO implements Serializable {
     private String name;
 
     /**
+     * 工具类型
+     * <p>
+     * HTTP: 外部API调用
+     * BUILTIN: 内置工具
+     * </p>
+     */
+    @TableField("tool_type")
+    @Builder.Default
+    private String toolType = "HTTP";
+
+    /**
      * 工具描述
      */
     @TableField("description")

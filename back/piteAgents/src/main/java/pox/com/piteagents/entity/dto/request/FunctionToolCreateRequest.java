@@ -20,21 +20,36 @@ public class ToolCreateRequest {
     private String name;
 
     /**
+     * 工具类型
+     * <p>
+     * HTTP: 外部API调用（默认）
+     * BUILTIN: 内置工具
+     * </p>
+     */
+    private String toolType = "HTTP";
+
+    /**
      * 工具描述
      */
     @NotBlank(message = "工具描述不能为空")
     private String description;
 
     /**
-     * 工具调用端点
+     * 工具调用端点（HTTP类型必填）
+     * <p>
+     * 当工具类型为HTTP时必填，指定外部API的完整URL
+     * 例如：https://api.example.com/search
+     * </p>
      */
-    @NotBlank(message = "工具 endpoint 不能为空")
     private String endpoint;
 
     /**
-     * HTTP 方法
+     * HTTP 方法（HTTP类型必填）
+     * <p>
+     * 当工具类型为HTTP时必填，指定HTTP请求方法
+     * 可选值：GET, POST, PUT, DELETE, PATCH
+     * </p>
      */
-    @NotBlank(message = "HTTP 方法不能为空")
     private String method;
 
     /**

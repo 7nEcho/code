@@ -10,8 +10,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -64,9 +62,10 @@ public class ToolServiceImpl implements IToolService {
 
         ToolDefinitionPO tool = ToolDefinitionPO.builder()
                 .name(request.getName())
+                .isBuiltin(request.getIsBuiltin() != null ? request.getIsBuiltin() : false)
                 .description(request.getDescription())
                 .endpoint(request.getEndpoint())
-                .method(request.getMethod().toUpperCase(Locale.ROOT))
+                .method(request.getMethod() != null ? request.getMethod().toUpperCase(Locale.ROOT) : "POST")
                 .parameters(toJson(request.getParameters()))
                 .headers(toJson(request.getHeaders()))
                 .timeout(request.getTimeout() != null ? request.getTimeout() : DEFAULT_TIMEOUT)
@@ -152,23 +151,38 @@ public class ToolServiceImpl implements IToolService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ToolDefinitionDTO> listTools(Boolean isActive, Pageable pageable) {
-        log.info("分页查询工具列表，isActive: {}, page: {}", isActive, pageable);
+    public IPage<ToolDefinitionDTO> listTools(Boolean isActive, IPage<ToolDefinitionDTO> page) {
+        log.info("分页查询工具列表，isActive: {}, page: {}", isActive, page);
 
+        // 构建查询条件
         LambdaQueryWrapper<ToolDefinitionPO> queryWrapper = Wrappers.lambdaQuery();
         if (isActive != null) {
             queryWrapper.eq(ToolDefinitionPO::getIsActive, isActive);
         }
-        queryWrapper.orderByDesc(ToolDefinitionPO::getCreatedAt);
 
-        Page<ToolDefinitionPO> mpPage = new Page<>(pageable.getPageNumber() + 1, pageable.getPageSize());
+        // 创建 MyBatis-Plus 分页对象
+        Page<ToolDefinitionPO> mpPage = new Page<>(page.getCurrent(), page.getSize());
+        
+        // 复制排序信息
+        if (page.orders() != null && !page.orders().isEmpty()) {
+            mpPage.addOrder(page.orders());
+        }
+        
+        // 分页查询
         IPage<ToolDefinitionPO> pageResult = toolDefinitionMapper.selectPage(mpPage, queryWrapper);
 
-        List<ToolDefinitionDTO> content = pageResult.getRecords().stream()
+        // 转换为 DTO
+        Page<ToolDefinitionDTO> resultPage = new Page<>(pageResult.getCurrent(), pageResult.getSize(), pageResult.getTotal());
+        resultPage.setRecords(pageResult.getRecords().stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
-
-        return new PageImpl<>(content, pageable, pageResult.getTotal());
+                .collect(Collectors.toList()));
+        
+        // 复制排序信息到结果
+        if (pageResult.orders() != null && !pageResult.orders().isEmpty()) {
+            resultPage.addOrder(pageResult.orders());
+        }
+        
+        return resultPage;
     }
 
     @Override
@@ -312,6 +326,7 @@ public class ToolServiceImpl implements IToolService {
         return ToolDefinitionDTO.builder()
                 .id(tool.getId())
                 .name(tool.getName())
+                .toolType(tool.getIsBuiltin() ? "BUILTIN" : "HTTP") // 兼容前端显示
                 .description(tool.getDescription())
                 .endpoint(tool.getEndpoint())
                 .method(tool.getMethod())

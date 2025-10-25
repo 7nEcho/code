@@ -33,6 +33,14 @@ public class ToolDefinitionDTO {
     private String name;
 
     /**
+     * 工具类型
+     * <p>
+     * HTTP: 外部API调用, BUILTIN: 内置工具
+     * </p>
+     */
+    private String toolType;
+
+    /**
      * 工具描述
      */
     private String description;

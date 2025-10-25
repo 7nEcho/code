@@ -10,7 +10,7 @@ import java.util.Map;
  * 更新工具请求对象
  */
 @Data
-public class ToolUpdateRequest {
+public class FunctionToolUpdateRequest {
 
     private String name;
 

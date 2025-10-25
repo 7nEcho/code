@@ -1,7 +1,6 @@
 package pox.com.piteagents.service;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import pox.com.piteagents.entity.dto.request.AgentToolBindRequest;
 import pox.com.piteagents.entity.dto.request.ToolCreateRequest;
 import pox.com.piteagents.entity.dto.request.ToolUpdateRequest;
@@ -43,10 +42,10 @@ public interface IToolService {
      * 分页查询工具
      *
      * @param isActive 是否启用
-     * @param pageable 分页参数
+     * @param page 分页参数
      * @return 工具定义分页
      */
-    Page<ToolDefinitionDTO> listTools(Boolean isActive, Pageable pageable);
+    IPage<ToolDefinitionDTO> listTools(Boolean isActive, IPage<ToolDefinitionDTO> page);
 
     /**
      * 查询单个工具
