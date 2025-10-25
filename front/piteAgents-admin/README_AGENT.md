@@ -96,6 +96,8 @@ npm run dev  # 启动开发服务器
 
 ### 目录结构
 
+项目采用模块化、清晰的目录结构，样式文件与对应的视图模块放在一起：
+
 ```
 front/piteAgents-admin/src/
 ├── api/                      # API 调用模块
@@ -103,13 +105,11 @@ front/piteAgents-admin/src/
 │   ├── chat.js               # 聊天 API 调用
 │   └── request.js            # Axios 实例配置
 ├── assets/
-│   └── styles/               # 样式文件
-│       ├── agent.css         # Agent 页面样式
-│       ├── chat.css          # 聊天页面样式
-│       ├── global.css        # 全局样式
+│   └── styles/               # 全局样式文件
+│       ├── global.css        # 全局基础样式
 │       └── markdown.css      # Markdown 渲染样式
 ├── components/
-│   └── Layout/               # 布局组件
+│   └── Layout/               # 全局布局组件
 │       ├── MainLayout.vue    # 主布局组件
 │       └── NavBar.vue        # 导航栏组件
 ├── router/
@@ -118,14 +118,22 @@ front/piteAgents-admin/src/
 │   └── storage.js            # 本地存储工具
 ├── views/                    # 页面视图（按模块分类）
 │   ├── chat/                 # 聊天模块
-│   │   └── Index.vue         # 聊天主页面
+│   │   ├── Index.vue         # 聊天主页面
+│   │   └── styles.css        # 聊天页面样式
 │   └── agent/                # Agent 管理模块
 │       ├── List.vue          # Agent 列表页
 │       ├── Detail.vue        # Agent 详情页
-│       └── Form.vue          # Agent 表单页（新建/编辑）
+│       ├── Form.vue          # Agent 表单页（新建/编辑）
+│       └── styles.css        # Agent 模块样式
 ├── App.vue                   # 根组件
 └── main.js                   # 应用入口
 ```
+
+**设计原则**：
+- ✅ 模块化：按功能模块组织代码
+- ✅ 样式隔离：各模块样式与页面放在同一目录
+- ✅ 全局复用：全局组件和样式单独管理
+- ✅ 自适应布局：所有页面使用响应式设计，支持多种屏幕尺寸
 
 ### API 接口
 

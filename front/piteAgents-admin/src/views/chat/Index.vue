@@ -41,11 +41,26 @@
           <button @click="sidebarOpen = !sidebarOpen" class="icon-button">
             <Bars3Icon class="icon-lg" />
           </button>
+          <div v-if="selectedAgent" class="agent-info">
+            <div class="agent-avatar-sm">
+              <img v-if="selectedAgent.avatar" :src="selectedAgent.avatar" :alt="selectedAgent.name" />
+              <CpuChipIcon v-else class="avatar-icon-sm" />
+            </div>
+            <span class="agent-name-sm">{{ selectedAgent.name }}</span>
+          </div>
         </div>
 
         <div class="header-right">
+          <!-- Agent 选择 -->
+          <select v-model="selectedAgentId" class="agent-select" @change="handleAgentChange">
+            <option :value="null">无 Agent（直接对话）</option>
+            <option v-for="agent in agents" :key="agent.id" :value="agent.id">
+              {{ agent.name }} - {{ agent.category || '通用' }}
+            </option>
+          </select>
+
           <!-- 模型选择 -->
-          <select v-model="selectedModel" class="model-select">
+          <select v-model="selectedModel" class="model-select" :disabled="selectedAgentId !== null">
             <option v-for="model in models" :key="model.code" :value="model.code">
               {{ model.name }}
             </option>
@@ -169,9 +184,11 @@ import {
   CpuChipIcon,
 } from '@heroicons/vue/24/outline'
 import { chat, streamChat, getModels } from '@/api/chat'
+import { getAgentList } from '@/api/agent'
 import { saveConversations, loadConversations } from '@/utils/storage'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
+import './styles.css'
 
 // 初始化 Markdown 渲染器
 const md = new MarkdownIt({
@@ -205,6 +222,11 @@ const isStreamMode = ref(true)
 const models = ref([])
 const selectedModel = ref('glm-4.5') // 默认使用 GLM-4.5
 const messageContainer = ref(null)
+
+// Agent 相关状态
+const agents = ref([])
+const selectedAgentId = ref(null)
+const selectedAgent = ref(null)
 
 // 生成唯一 ID
 const generateId = () => {
@@ -332,12 +354,12 @@ const sendMessage = async () => {
 
       await streamChat(
         {
-          messages: currentMessages.value.slice(0, -1).map(m => ({
-            role: m.role,
-            content: m.content
-          })),
+          messages: buildMessages().slice(0, -1),
           model: selectedModel.value,
           stream: true,
+          temperature: selectedAgent.value?.config?.temperature,
+          maxTokens: selectedAgent.value?.config?.maxTokens,
+          topP: selectedAgent.value?.config?.topP,
         },
         (data) => {
           // 接收增量数据
@@ -368,8 +390,11 @@ const sendMessage = async () => {
       // 同步模式
       console.log('[ChatView] 开始同步对话')
       const response = await chat({
-        messages: currentMessages.value,
+        messages: buildMessages(),
         model: selectedModel.value,
+        temperature: selectedAgent.value?.config?.temperature,
+        maxTokens: selectedAgent.value?.config?.maxTokens,
+        topP: selectedAgent.value?.config?.topP,
       })
 
       const assistantMessage = {
@@ -408,6 +433,65 @@ const fetchModels = async () => {
   }
 }
 
+// 获取 Agent 列表
+const fetchAgents = async () => {
+  try {
+    const response = await getAgentList({ status: 'ACTIVE', size: 100 })
+    agents.value = response.data.content || []
+    console.log('[ChatView] 获取到 Agent 列表:', agents.value.length)
+  } catch (error) {
+    console.error('[ChatView] 获取 Agent 列表失败:', error)
+    agents.value = []
+  }
+}
+
+// 处理 Agent 选择变更
+const handleAgentChange = () => {
+  if (selectedAgentId.value) {
+    // 查找选中的 Agent
+    selectedAgent.value = agents.value.find(a => a.id === selectedAgentId.value)
+    
+    if (selectedAgent.value && selectedAgent.value.config) {
+      // 使用 Agent 的模型配置
+      selectedModel.value = selectedAgent.value.config.model || 'glm-4.6'
+    }
+    
+    console.log('[ChatView] 选择 Agent:', selectedAgent.value?.name)
+  } else {
+    selectedAgent.value = null
+    console.log('[ChatView] 取消选择 Agent')
+  }
+}
+
+// 构建消息列表（如果选择了 Agent，添加系统提示词）
+const buildMessages = () => {
+  const messages = []
+  
+  // 如果选择了 Agent，添加系统提示词
+  if (selectedAgent.value && selectedAgent.value.systemPrompt) {
+    messages.push({
+      role: 'system',
+      content: selectedAgent.value.systemPrompt
+    })
+    
+    // 如果有角色提示词，也添加进去
+    if (selectedAgent.value.rolePrompt) {
+      messages.push({
+        role: 'system',
+        content: selectedAgent.value.rolePrompt
+      })
+    }
+  }
+  
+  // 添加对话历史
+  messages.push(...currentMessages.value.map(m => ({
+    role: m.role,
+    content: m.content
+  })))
+  
+  return messages
+}
+
 // 初始化
 onMounted(() => {
   console.log('[ChatView] 组件挂载，开始初始化')
@@ -429,8 +513,9 @@ onMounted(() => {
     console.log('[ChatView] 创建新对话')
   }
 
-  // 获取模型列表
+  // 获取模型列表和 Agent 列表
   fetchModels()
+  fetchAgents()
 
   scrollToBottom()
 })
@@ -440,7 +525,3 @@ watch(() => currentMessages.value.length, () => {
   scrollToBottom()
 })
 </script>
-
-<style scoped>
-/* 组件特定样式 */
-</style>

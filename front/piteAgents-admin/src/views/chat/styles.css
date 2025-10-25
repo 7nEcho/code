@@ -1,8 +1,8 @@
-/* 聊天界面样式 */
+/* 聊天页面样式 */
 
 .chat-container {
   display: flex;
-  height: 100vh;
+  height: 100%;
   background: linear-gradient(135deg, #f0f4f8 0%, #e8f0fe 50%, #f0e8ff 100%);
   overflow: hidden;
 }
@@ -163,6 +163,79 @@
   flex-wrap: wrap;
 }
 
+/* Agent 信息显示 */
+.agent-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0.5rem 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: var(--radius-lg);
+  margin-left: var(--spacing-md);
+}
+
+.agent-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-600) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.agent-avatar-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-icon-sm {
+  width: 18px;
+  height: 18px;
+  color: white;
+}
+
+.agent-name-sm {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Agent 选择器 */
+.agent-select {
+  padding: 0.625rem 2.5rem 0.625rem 1rem;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: white;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+  min-width: 180px;
+  max-width: 250px;
+}
+
+.agent-select:hover {
+  border-color: var(--gray-300);
+}
+
+.agent-select:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 /* ==================== 消息列表 ==================== */
 
 .message-container {
@@ -172,7 +245,7 @@
 }
 
 .messages-wrapper {
-  max-width: 1200px;
+  max-width: min(1200px, 90%);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -352,7 +425,7 @@
 }
 
 .input-wrapper {
-  max-width: 1200px;
+  max-width: min(1200px, 90%);
   margin: 0 auto;
   display: flex;
   gap: var(--spacing-md);
@@ -459,6 +532,8 @@
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
   background-size: 1rem;
+  min-width: 120px;
+  max-width: 160px;
 }
 
 .model-select:hover {
@@ -468,6 +543,12 @@
 .model-select:focus {
   border-color: var(--primary-500);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.model-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--gray-50);
 }
 
 .mode-toggle {
@@ -485,6 +566,7 @@
   font-weight: 600;
   transition: all var(--transition-base);
   color: var(--gray-600);
+  white-space: nowrap;
 }
 
 .mode-button:hover {
@@ -555,6 +637,26 @@
     padding: 1rem;
   }
 
+  .agent-info {
+    margin-left: 0;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .agent-name-sm {
+    display: none;
+  }
+
+  .agent-select {
+    min-width: 140px;
+    max-width: 180px;
+    font-size: 0.8125rem;
+  }
+
+  .model-select {
+    min-width: 100px;
+    max-width: 130px;
+  }
+
   .message-bubble {
     max-width: 85%;
   }
@@ -574,8 +676,16 @@
     justify-content: space-between;
   }
 
-  .mode-toggle {
+  .agent-select,
+  .model-select {
     flex: 1;
+    min-width: auto;
+    max-width: none;
+  }
+
+  .mode-toggle {
+    width: 100%;
+    margin-top: var(--spacing-sm);
   }
 
   .mode-button {
@@ -583,4 +693,5 @@
     text-align: center;
   }
 }
+
 
