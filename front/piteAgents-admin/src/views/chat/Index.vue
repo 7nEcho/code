@@ -41,10 +41,6 @@
           <button @click="sidebarOpen = !sidebarOpen" class="icon-button">
             <Bars3Icon class="icon-lg" />
           </button>
-          <div>
-            <h1 class="header-title">智谱AI对话助手</h1>
-            <p class="header-subtitle">Powered by GLM-4.5 · 支持 Markdown 格式</p>
-          </div>
         </div>
 
         <div class="header-right">

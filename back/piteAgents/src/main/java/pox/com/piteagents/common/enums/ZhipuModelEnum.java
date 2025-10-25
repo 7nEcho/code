@@ -1,4 +1,4 @@
-package pox.com.piteagents.enums;
+package pox.com.piteagents.common.enums;
 
 import lombok.Getter;
 

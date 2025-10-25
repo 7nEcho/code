@@ -11,7 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import pox.com.piteagents.constant.MessageRole;
+import pox.com.piteagents.common.constant.MessageRole;
 import pox.com.piteagents.entity.dto.common.Message;
 import pox.com.piteagents.entity.dto.request.ChatRequest;
 import pox.com.piteagents.entity.dto.response.ChatResponse;

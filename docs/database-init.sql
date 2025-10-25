@@ -10,8 +10,7 @@
 -- ===========================
 CREATE DATABASE IF NOT EXISTS `pite_agents` 
     CHARACTER SET utf8mb4 
-    COLLATE utf8mb4_unicode_ci
-    COMMENT 'piteAgents AI Agent 管理系统数据库';
+    COLLATE utf8mb4_unicode_ci;
 
 -- ===========================
 -- 2. 选择数据库

@@ -1,4 +1,4 @@
-package pox.com.piteagents.constant;
+package pox.com.piteagents.common.constant;
 
 /**
  * Agent 相关常量

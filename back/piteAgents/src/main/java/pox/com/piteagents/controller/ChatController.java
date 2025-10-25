@@ -10,7 +10,7 @@ import pox.com.piteagents.entity.dto.common.ApiResponse;
 import pox.com.piteagents.entity.dto.request.ChatRequest;
 import pox.com.piteagents.entity.dto.response.ChatResponse;
 import pox.com.piteagents.entity.dto.response.ModelInfoResponse;
-import pox.com.piteagents.enums.ZhipuModelEnum;
+import pox.com.piteagents.common.enums.ZhipuModelEnum;
 import pox.com.piteagents.service.IZhipuService;
 
 import java.util.Arrays;
