@@ -19,6 +19,12 @@ import NavBar from './NavBar.vue'
 </script>
 
 <style scoped>
+/* CSS 变量定义 */
+:root {
+  /* 过渡 */
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .main-layout {
   display: flex;
   flex-direction: column;

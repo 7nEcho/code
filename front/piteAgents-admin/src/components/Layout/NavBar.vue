@@ -41,6 +41,40 @@ import {
 </script>
 
 <style scoped>
+/* CSS 变量定义 */
+:root {
+  /* 主题色 */
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  
+  --secondary-600: #4f46e5;
+  
+  /* 中性色 */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  
+  /* 间距 */
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* 圆角 */
+  --radius-lg: 0.75rem;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  
+  /* 过渡 */
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .navbar {
   position: sticky;
   top: 0;

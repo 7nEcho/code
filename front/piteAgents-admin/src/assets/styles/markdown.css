@@ -1,5 +1,31 @@
 /* Markdown 渲染样式 */
 
+/* CSS 变量定义 */
+:root {
+  /* 主题色 */
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  
+  /* 中性色 */
+  --gray-50: #f9fafb;
+  --gray-200: #e5e7eb;
+  --gray-600: #4b5563;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  /* 圆角 */
+  --radius-md: 0.5rem;
+  --radius-xl: 1rem;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  
+  /* 过渡 */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .markdown-body {
   color: var(--gray-800);
   font-size: 15px;
