@@ -5,6 +5,8 @@ const ChatView = () => import('@/views/chat/Index.vue')
 const AgentList = () => import('@/views/agent/List.vue')
 const AgentDetail = () => import('@/views/agent/Detail.vue')
 const AgentForm = () => import('@/views/agent/Form.vue')
+const ToolList = () => import('@/views/tool/List.vue')
+const ToolForm = () => import('@/views/tool/Form.vue')
 
 /**
  * 路由配置
@@ -13,6 +15,30 @@ const routes = [
   {
     path: '/',
     redirect: '/chat',
+  },
+  {
+    path: '/tools',
+    name: 'ToolList',
+    component: ToolList,
+    meta: {
+      title: '工具管理',
+    },
+  },
+  {
+    path: '/tools/create',
+    name: 'ToolCreate',
+    component: ToolForm,
+    meta: {
+      title: '创建工具',
+    },
+  },
+  {
+    path: '/tools/:id/edit',
+    name: 'ToolEdit',
+    component: ToolForm,
+    meta: {
+      title: '编辑工具',
+    },
   },
   {
     path: '/chat',
@@ -76,4 +102,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-

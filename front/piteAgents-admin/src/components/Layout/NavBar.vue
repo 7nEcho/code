@@ -19,6 +19,10 @@
           <UserGroupIcon class="nav-icon" />
           <span>Agent 管理</span>
         </router-link>
+        <router-link to="/tools" class="nav-item" active-class="active">
+          <WrenchScrewdriverIcon class="nav-icon" />
+          <span>工具管理</span>
+        </router-link>
       </div>
 
       <!-- 右侧：预留用户信息区域 -->
@@ -36,6 +40,7 @@ import {
   CpuChipIcon,
   ChatBubbleLeftRightIcon,
   UserGroupIcon,
+  WrenchScrewdriverIcon,
   UserCircleIcon,
 } from '@heroicons/vue/24/outline'
 </script>
@@ -237,4 +242,3 @@ import {
   }
 }
 </style>
-

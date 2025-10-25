@@ -13,7 +13,10 @@ import pox.com.piteagents.entity.dto.request.AgentCreateRequest;
 import pox.com.piteagents.entity.dto.request.AgentUpdateRequest;
 import pox.com.piteagents.entity.dto.response.AgentConfigDTO;
 import pox.com.piteagents.entity.dto.response.AgentDTO;
+import pox.com.piteagents.entity.dto.request.AgentToolBindRequest;
+import pox.com.piteagents.entity.dto.response.AgentToolDTO;
 import pox.com.piteagents.service.IAgentService;
+import pox.com.piteagents.service.IToolService;
 
 /**
  * Agent 控制器
@@ -31,6 +34,7 @@ import pox.com.piteagents.service.IAgentService;
 public class AgentController {
 
     private final IAgentService agentService;
+    private final IToolService toolService;
 
     /**
      * 创建 Agent
@@ -144,6 +148,34 @@ public class AgentController {
     }
 
     /**
+     * 批量绑定 Agent 的工具列表
+     *
+     * @param agentId Agent ID
+     * @param request 绑定请求
+     * @return 成功消息
+     */
+    @PostMapping("/{agentId}/tools")
+    public ApiResponse<Void> bindAgentTools(@PathVariable Long agentId,
+                                            @Valid @RequestBody AgentToolBindRequest request) {
+        log.info("绑定 Agent 工具，agentId: {}", agentId);
+        toolService.bindAgentTools(agentId, request);
+        return ApiResponse.success("工具关联成功");
+    }
+
+    /**
+     * 查询 Agent 的工具列表
+     *
+     * @param agentId Agent ID
+     * @return 工具列表
+     */
+    @GetMapping("/{agentId}/tools")
+    public ApiResponse<java.util.List<AgentToolDTO>> listAgentTools(@PathVariable Long agentId) {
+        log.info("查询 Agent 工具列表，agentId: {}", agentId);
+        java.util.List<AgentToolDTO> tools = toolService.listAgentTools(agentId);
+        return ApiResponse.success(tools);
+    }
+
+    /**
      * 状态更新请求对象
      */
     @lombok.Data
@@ -151,4 +183,3 @@ public class AgentController {
         private String status;
     }
 }
-
