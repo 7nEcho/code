@@ -50,8 +50,16 @@
           <tbody>
             <tr v-for="tool in displayedTools" :key="tool.id">
               <td>
-                <div class="tool-name">{{ tool.name }}</div>
+                <div class="tool-name">
+                  {{ tool.name }}
+                  <span class="tool-type-badge" :class="(tool.toolType || 'HTTP').toLowerCase()">
+                    {{ tool.toolType || 'HTTP' }}
+                  </span>
+                </div>
                 <div class="tool-desc">{{ tool.description || '暂无描述' }}</div>
+                <div v-if="tool.toolType === 'LOCAL'" class="tool-implementation">
+                  {{ tool.implementationClass }}::{{ tool.methodName }}
+                </div>
               </td>
               <td>
                 <div class="tool-method">
@@ -96,14 +104,14 @@
 
         <div v-if="totalPages > 1" class="tool-pagination">
           <button
-            :disabled="page === 0"
+            :disabled="page <= 1"
             @click="changePage(page - 1)"
           >
             <ChevronLeftIcon class="icon-sm" />
           </button>
-          <span>第 {{ page + 1 }} / {{ totalPages }} 页</span>
+          <span>第 {{ page }} / {{ totalPages }} 页，共 {{ totalElements }} 条</span>
           <button
-            :disabled="page >= totalPages - 1"
+            :disabled="page >= totalPages"
             @click="changePage(page + 1)"
           >
             <ChevronRightIcon class="icon-sm" />
@@ -138,12 +146,14 @@ const loading = ref(false)
 const tools = ref([])
 const totalPages = ref(0)
 const totalElements = ref(0)
-const page = ref(0)
+const page = ref(1) // MyBatis-Plus 分页从1开始
 const size = ref(10)
 const searchKeyword = ref('')
 
 const searchParams = reactive({
   isActive: '',
+  sortField: '',
+  sortDirection: '',
 })
 
 const displayedTools = computed(() => {
@@ -164,15 +174,20 @@ const fetchTools = async () => {
     const params = {
       page: page.value,
       size: size.value,
+      sortField: searchParams.sortField || undefined,
+      sortDirection: searchParams.sortDirection || undefined,
     }
     if (searchParams.isActive !== '') {
       params.isActive = searchParams.isActive === 'true'
     }
     const response = await getToolList(params)
-    tools.value = response.data.content || []
-    totalPages.value = response.data.totalPages || 0
-    totalElements.value = response.data.totalElements || 0
-    page.value = response.data.number || 0
+    
+    // MyBatis-Plus 分页响应格式
+    const pageData = response.data
+    tools.value = pageData.records || []
+    totalPages.value = pageData.pages || 0
+    totalElements.value = pageData.total || 0
+    page.value = pageData.current || 1
   } catch (error) {
     console.error('加载工具列表失败:', error)
     alert(error.message || '加载工具列表失败，请稍后再试')
@@ -182,13 +197,13 @@ const fetchTools = async () => {
 }
 
 const changePage = (newPage) => {
-  if (newPage < 0 || newPage >= totalPages.value) return
+  if (newPage < 1 || newPage > totalPages.value) return
   page.value = newPage
   fetchTools()
 }
 
 const handleFilterChange = () => {
-  page.value = 0
+  page.value = 1 // 重置到第一页
   fetchTools()
 }
 

@@ -2,15 +2,13 @@ package pox.com.piteagents.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springframework.web.bind.annotation.*;
 import pox.com.piteagents.entity.dto.common.ApiResponse;
 import pox.com.piteagents.entity.dto.response.ConversationMessageDTO;
 import pox.com.piteagents.entity.dto.response.ConversationSessionDTO;
 import pox.com.piteagents.service.IConversationService;
+import pox.com.piteagents.common.utils.PaginationUtils;
 
 /**
  * 对话历史控制器
@@ -28,25 +26,35 @@ import pox.com.piteagents.service.IConversationService;
 public class ConversationController {
 
     private final IConversationService conversationService;
+    private final PaginationUtils paginationUtils;
 
     /**
      * 获取会话列表
      *
      * @param agentId Agent ID（可选）
-     * @param page 页码（默认0）
-     * @param size 每页大小（默认20）
+     * @param page 页码（默认1）
+     * @param size 每页大小（使用配置的默认值）
+     * @param sortField 排序字段（可选）
+     * @param sortDirection 排序方向（可选）
      * @return 会话分页列表
      */
     @GetMapping
-    public ApiResponse<Page<ConversationSessionDTO>> listSessions(
+    public ApiResponse<IPage<ConversationSessionDTO>> listSessions(
             @RequestParam(required = false) Long agentId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortDirection) {
         
-        log.info("查询会话列表，agentId: {}, page: {}, size: {}", agentId, page, size);
+        log.info("查询会话列表，agentId: {}, page: {}, size: {}, sortField: {}, sortDirection: {}", 
+                agentId, page, size, sortField, sortDirection);
         
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
-        Page<ConversationSessionDTO> sessions = conversationService.listSessions(agentId, pageable);
+        // 使用分页工具类创建分页对象，默认按更新时间降序排列
+        String defaultSortField = sortField != null ? sortField : "updatedAt";
+        IPage<ConversationSessionDTO> pageParam = paginationUtils.createPage(page, size, defaultSortField, sortDirection);
+        IPage<ConversationSessionDTO> sessions = conversationService.listSessions(agentId, pageParam);
+        
+        paginationUtils.logPaginationInfo(sessions, "查询会话列表");
         
         return ApiResponse.success(sessions);
     }
@@ -68,20 +76,30 @@ public class ConversationController {
      * 获取会话消息历史
      *
      * @param id 会话 ID
-     * @param page 页码（默认0）
-     * @param size 每页大小（默认50）
+     * @param page 页码（默认1）
+     * @param size 每页大小（使用配置的默认值）
+     * @param sortField 排序字段（可选）
+     * @param sortDirection 排序方向（可选）
      * @return 消息分页列表
      */
     @GetMapping("/{id}/messages")
-    public ApiResponse<Page<ConversationMessageDTO>> getSessionMessages(
+    public ApiResponse<IPage<ConversationMessageDTO>> getSessionMessages(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortDirection) {
         
-        log.info("查询会话消息，会话ID: {}, page: {}, size: {}", id, page, size);
+        log.info("查询会话消息，会话ID: {}, page: {}, size: {}, sortField: {}, sortDirection: {}", 
+                id, page, size, sortField, sortDirection);
         
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
-        Page<ConversationMessageDTO> messages = conversationService.getSessionMessages(id, pageable);
+        // 使用分页工具类创建分页对象，默认按创建时间升序排列（消息的时间顺序）
+        String defaultSortField = sortField != null ? sortField : "createdAt";
+        String defaultSortDirection = sortDirection != null ? sortDirection : "ASC";
+        IPage<ConversationMessageDTO> pageParam = paginationUtils.createPage(page, size, defaultSortField, defaultSortDirection);
+        IPage<ConversationMessageDTO> messages = conversationService.getSessionMessages(id, pageParam);
+        
+        paginationUtils.logPaginationInfo(messages, "查询会话消息");
         
         return ApiResponse.success(messages);
     }

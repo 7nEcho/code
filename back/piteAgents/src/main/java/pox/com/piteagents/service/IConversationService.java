@@ -1,7 +1,6 @@
 package pox.com.piteagents.service;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import pox.com.piteagents.entity.dto.common.Message;
 import pox.com.piteagents.entity.dto.response.ConversationMessageDTO;
 import pox.com.piteagents.entity.dto.response.ConversationSessionDTO;
@@ -56,10 +55,10 @@ public interface IConversationService {
      * 获取会话列表
      *
      * @param agentId Agent ID（可选）
-     * @param pageable 分页参数
+     * @param page 分页参数
      * @return 会话分页列表
      */
-    Page<ConversationSessionDTO> listSessions(Long agentId, Pageable pageable);
+    IPage<ConversationSessionDTO> listSessions(Long agentId, IPage<ConversationSessionDTO> page);
 
     /**
      * 获取会话详情
@@ -73,10 +72,10 @@ public interface IConversationService {
      * 获取会话消息列表
      *
      * @param sessionId 会话 ID
-     * @param pageable 分页参数
+     * @param page 分页参数
      * @return 消息分页列表
      */
-    Page<ConversationMessageDTO> getSessionMessages(Long sessionId, Pageable pageable);
+    IPage<ConversationMessageDTO> getSessionMessages(Long sessionId, IPage<ConversationMessageDTO> page);
 
     /**
      * 删除会话

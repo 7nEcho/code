@@ -34,6 +34,18 @@
               <span class="tool-hint">名称将作为大模型调用时的 function.name，请保持唯一。</span>
             </div>
             <div class="tool-form-group">
+              <label>工具类型 *</label>
+              <select v-model="formData.toolType" class="tool-select" required>
+                <option value="HTTP">HTTP工具 - 调用外部API</option>
+                <option value="BUILTIN">内置工具 - 系统预定义功能</option>
+              </select>
+              <span class="tool-hint">内置工具无需配置端点，通过代码自动注册。</span>
+            </div>
+          </div>
+          
+          <!-- HTTP工具专有字段 -->
+          <div v-if="formData.toolType === 'HTTP'" class="tool-form-grid">
+            <div class="tool-form-group">
               <label>HTTP 方法 *</label>
               <select v-model="formData.method" class="tool-select" required>
                 <option v-for="method in httpMethods" :key="method" :value="method">
@@ -41,6 +53,22 @@
                 </option>
               </select>
             </div>
+            <div class="tool-form-group">
+              <label>接口 Endpoint *</label>
+              <input
+                v-model.trim="formData.endpoint"
+                type="url"
+                class="tool-input"
+                placeholder="https://api.example.com/tools/hello-pox"
+                required
+              />
+              <span class="tool-hint">需为可访问的完整 URL，后端会基于该配置调用真实服务。</span>
+            </div>
+          </div>
+          
+          <!-- BUILTIN工具说明 -->
+          <div v-if="formData.toolType === 'BUILTIN'" class="tool-info-notice">
+            <p>内置工具是系统预定义的工具，无需配置额外参数。现有内置工具：math_calculator（数学计算）、datetime_helper（时间处理）、system_info（系统信息）。</p>
           </div>
           <div class="tool-form-group">
             <label>描述 *</label>
@@ -52,17 +80,6 @@
               required
               maxlength="200"
             ></textarea>
-          </div>
-          <div class="tool-form-group">
-            <label>接口 Endpoint *</label>
-            <input
-              v-model.trim="formData.endpoint"
-              type="url"
-              class="tool-input"
-              placeholder="https://api.example.com/tools/hello-pox"
-              required
-            />
-            <span class="tool-hint">需为可访问的完整 URL，后端会基于该配置调用真实服务。</span>
           </div>
         </section>
 
@@ -176,9 +193,15 @@ const parametersError = ref('')
 const headersError = ref('')
 
 const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+const toolTypes = [
+  { value: 'HTTP', label: 'HTTP - 外部API调用' },
+  { value: 'BUILTIN', label: 'BUILTIN - 内置工具' }
+]
 
 const formData = reactive({
   name: '',
+  toolType: 'HTTP',
+  isBuiltin: false,
   description: '',
   endpoint: '',
   method: 'POST',
@@ -214,6 +237,8 @@ const loadToolDetail = async () => {
     const response = await getToolDetail(route.params.id)
     const tool = response.data
     formData.name = tool.name
+    formData.toolType = tool.toolType || 'HTTP'
+    formData.isBuiltin = tool.toolType === 'BUILTIN'
     formData.description = tool.description
     formData.endpoint = tool.endpoint
     formData.method = tool.method || 'POST'
@@ -231,9 +256,18 @@ const loadToolDetail = async () => {
 }
 
 const handleSubmit = async () => {
-  if (!formData.name || !formData.description || !formData.endpoint) {
-    alert('请填写必填项')
+  // 验证必填项
+  if (!formData.name || !formData.description) {
+    alert('请填写工具名称和描述')
     return
+  }
+  
+  // 根据工具类型验证特定字段
+  if (formData.toolType === 'HTTP') {
+    if (!formData.endpoint || !formData.method) {
+      alert('HTTP工具需要填写接口地址和HTTP方法')
+      return
+    }
   }
 
   let parametersPayload = null
@@ -247,6 +281,7 @@ const handleSubmit = async () => {
 
   const payload = {
     name: formData.name,
+    isBuiltin: formData.toolType === 'BUILTIN',
     description: formData.description,
     endpoint: formData.endpoint,
     method: formData.method,

@@ -1,7 +1,6 @@
 package pox.com.piteagents.service;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import pox.com.piteagents.entity.dto.request.AgentCreateRequest;
 import pox.com.piteagents.entity.dto.request.AgentUpdateRequest;
 import pox.com.piteagents.entity.dto.response.AgentConfigDTO;
@@ -57,10 +56,10 @@ public interface IAgentService {
      * @param category 分类（可选）
      * @param status 状态（可选）
      * @param keyword 关键词（可选）
-     * @param pageable 分页参数
+     * @param page 分页参数
      * @return Agent 分页列表
      */
-    Page<AgentDTO> listAgents(String category, String status, String keyword, Pageable pageable);
+    IPage<AgentDTO> listAgents(String category, String status, String keyword, IPage<AgentDTO> page);
 
     /**
      * 更新 Agent 配置

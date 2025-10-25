@@ -484,8 +484,9 @@ const openToolModal = async () => {
   toolSearchKeyword.value = ''
 
   try {
-    const response = await getToolList({ page: 0, size: 100 })
-    const list = response.data?.content || []
+    const response = await getToolList({ page: 1, size: 100 })
+    // MyBatis-Plus 分页响应格式
+    const list = response.data?.records || []
 
     const existingMap = new Map()
     agentTools.value.forEach((tool, index) => {

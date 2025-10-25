@@ -109,17 +109,17 @@
       <div v-if="totalPages > 1" class="pagination">
         <button
           @click="handlePageChange(currentPage - 1)"
-          :disabled="currentPage === 0"
+          :disabled="currentPage <= 1"
           class="pagination-button"
         >
           <ChevronLeftIcon class="icon-sm" />
         </button>
         <span class="pagination-info">
-          第 {{ currentPage + 1 }} / {{ totalPages }} 页
+          第 {{ currentPage }} / {{ totalPages }} 页，共 {{ totalElements }} 条
         </span>
         <button
           @click="handlePageChange(currentPage + 1)"
-          :disabled="currentPage >= totalPages - 1"
+          :disabled="currentPage >= totalPages"
           class="pagination-button"
         >
           <ChevronRightIcon class="icon-sm" />
@@ -152,7 +152,7 @@ const router = useRouter()
 // 状态管理
 const loading = ref(false)
 const agents = ref([])
-const currentPage = ref(0)
+const currentPage = ref(1) // MyBatis-Plus 分页从1开始
 const totalPages = ref(0)
 const totalElements = ref(0)
 
@@ -161,8 +161,10 @@ const searchParams = reactive({
   keyword: '',
   category: '',
   status: '',
-  page: 0,
+  page: 1, // MyBatis-Plus 分页从1开始
   size: 12,
+  sortField: '',
+  sortDirection: '',
 })
 
 // 获取状态文本
@@ -181,10 +183,12 @@ const loadAgents = async () => {
     loading.value = true
     const response = await getAgentList(searchParams)
 
-    agents.value = response.data.content || []
-    totalPages.value = response.data.totalPages || 0
-    totalElements.value = response.data.totalElements || 0
-    currentPage.value = response.data.number || 0
+    // MyBatis-Plus 分页响应格式
+    const pageData = response.data
+    agents.value = pageData.records || []
+    totalPages.value = pageData.pages || 0
+    totalElements.value = pageData.total || 0
+    currentPage.value = pageData.current || 1
   } catch (error) {
     console.error('加载 Agent 列表失败:', error)
     alert('加载 Agent 列表失败，请稍后重试')
@@ -198,7 +202,7 @@ let searchTimeout = null
 const handleSearch = () => {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    searchParams.page = 0
+    searchParams.page = 1 // 重置到第一页
     loadAgents()
   }, 500)
 }

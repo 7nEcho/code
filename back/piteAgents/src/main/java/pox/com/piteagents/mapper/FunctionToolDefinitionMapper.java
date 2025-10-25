@@ -2,7 +2,7 @@ package pox.com.piteagents.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Param;
-import pox.com.piteagents.entity.po.ToolDefinitionPO;
+import pox.com.piteagents.entity.po.FunctionToolDefinitionPO;
 
 import java.util.List;
 
@@ -15,14 +15,14 @@ import java.util.List;
  * @author piteAgents
  * @since 1.0.0
  */
-public interface ToolDefinitionMapper extends BaseMapper<ToolDefinitionPO> {
+public interface FunctionToolDefinitionMapper extends BaseMapper<FunctionToolDefinitionPO> {
 
     /**
      * 查询所有启用的工具（使用 XML 配置）
      *
      * @return 工具列表
      */
-    List<ToolDefinitionPO> selectActiveTools();
+    List<FunctionToolDefinitionPO> selectActiveTools();
 
     /**
      * 根据 Agent ID 查询关联的工具（使用 XML 配置）
@@ -30,6 +30,6 @@ public interface ToolDefinitionMapper extends BaseMapper<ToolDefinitionPO> {
      * @param agentId Agent ID
      * @return 工具列表
      */
-    List<ToolDefinitionPO> selectToolsByAgentId(@Param("agentId") Long agentId);
+    List<FunctionToolDefinitionPO> selectToolsByAgentId(@Param("agentId") Long agentId);
 }
 

@@ -14,13 +14,12 @@ import java.util.Map;
  * 返回工具的元数据信息及配置，用于工具管理接口。
  * </p>
  *
- * @author
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ToolDefinitionDTO {
+public class FunctionToolDefinitionDTO {
 
     /**
      * 工具 ID

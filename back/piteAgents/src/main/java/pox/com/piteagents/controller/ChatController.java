@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/chat")
 @RequiredArgsConstructor
 public class ChatController {
 
@@ -48,7 +48,7 @@ public class ChatController {
      * @param request 对话请求，包含消息列表、模型选择等参数
      * @return 统一响应格式，包含AI的完整回复
      */
-    @PostMapping("/chat")
+    @PostMapping("/normal")
     public ApiResponse<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
         log.info("收到同步对话请求");
 
@@ -75,7 +75,7 @@ public class ChatController {
      * @param request 对话请求，包含消息列表、模型选择等参数
      * @return SSE发射器，用于推送流式数据
      */
-    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamChat(@Valid @RequestBody ChatRequest request) {
         log.info("收到流式对话请求");
 
@@ -112,26 +112,22 @@ public class ChatController {
     }
 
     /**
-     * 工具调用测试接口
+     * 带工具调用的智能对话接口
      * <p>
-     * 专门用于测试 GLM-4.5 的工具调用功能。
-     * 这是一个独立的端点，不影响原有的对话功能。
+     * 支持Agent动态工具调用的智能对话接口。
+     * 根据请求中的agentId自动加载对应Agent的工具列表，
+     * AI会智能判断是否需要调用工具来获取信息或执行操作。
      * </p>
      * <p>
-     * 测试示例：
-     * POST /api/chat/with-tools
-     * {
-     *   "messages": [
-     *     {"role": "user", "content": "请调用 hello_pox 工具"}
-     *   ],
-     *   "model": "glm-4.5"
-     * }
+     * 兼容性说明：
+     * - 如果不指定agentId，则进行普通对话（不启用工具）
+     * - 如果指定agentId但该Agent未绑定工具，也会降级为普通对话
      * </p>
      *
-     * @param request 对话请求
-     * @return 对话响应（包含工具调用结果）
+     * @param request 对话请求（可包含agentId）
+     * @return 对话响应（可能包含工具调用结果）
      */
-    @PostMapping("/chat/with-tools")
+    @PostMapping("/with-tools")
     public ApiResponse<ChatResponse> chatWithTools(@Valid @RequestBody ChatRequest request) {
         log.info("收到工具调用测试请求");
         ChatResponse response = zhipuService.chatWithTools(request);

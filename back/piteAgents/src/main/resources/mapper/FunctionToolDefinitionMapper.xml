@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="pox.com.piteagents.mapper.ToolDefinitionMapper">
+<mapper namespace="pox.com.piteagents.mapper.FunctionToolDefinitionMapper">
 
     <!-- 工具定义结果映射 -->
-    <resultMap id="BaseResultMap" type="pox.com.piteagents.entity.po.ToolDefinitionPO">
+    <resultMap id="BaseResultMap" type="pox.com.piteagents.entity.po.FunctionToolDefinitionPO">
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="name" property="name" jdbcType="VARCHAR"/>
         <result column="description" property="description" jdbcType="VARCHAR"/>

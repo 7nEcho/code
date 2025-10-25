@@ -7,7 +7,7 @@ import request from './request'
  */
 export function chat(data) {
   return request({
-    url: '/api/chat',
+    url: '/api/chat/normal',
     method: 'post',
     data,
   })
@@ -99,7 +99,7 @@ export async function streamChat(data, onMessage, onError, onComplete) {
  */
 export function getModels() {
   return request({
-    url: '/api/models',
+    url: '/api/chat/models',
     method: 'get',
   })
 }

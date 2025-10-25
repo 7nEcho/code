@@ -15,8 +15,8 @@ import pox.com.piteagents.entity.dto.response.ChatResponse;
 import pox.com.piteagents.entity.dto.response.StreamChatResponse;
 import pox.com.piteagents.common.enums.ZhipuModelEnum;
 import pox.com.piteagents.exception.ZhipuApiException;
-import pox.com.piteagents.service.HelloPoxToolService;
 import pox.com.piteagents.service.IZhipuService;
+import pox.com.piteagents.service.functiontool.FunctionToolExecutor;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,10 +48,11 @@ public class ZhipuServiceImpl implements IZhipuService {
      */
     private final ZhipuConfig zhipuConfig;
 
+
     /**
-     * HelloPox 工具服务
+     * 简化工具执行器（新版本）
      */
-    private final HelloPoxToolService helloPoxToolService;
+    private final FunctionToolExecutor functionToolExecutor;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
@@ -260,28 +261,23 @@ public class ZhipuServiceImpl implements IZhipuService {
     @Override
     public ChatResponse chatWithTools(ChatRequest request) {
         try {
-            log.info("开始工具调用对话请求，模型: {}", 
-                    request.getModel() != null ? request.getModel() : zhipuConfig.getDefaultModel());
+            log.info("开始工具调用对话请求，模型: {}, AgentID: {}", 
+                    request.getModel() != null ? request.getModel() : zhipuConfig.getDefaultModel(),
+                    request.getAgentId());
 
-            // 1. 定义工具（硬编码用于 POC 测试）
-            ChatTool helloPoxTool = ChatTool.builder()
-                    .type("function")
-                    .function(ChatFunction.builder()
-                            .name("hello_pox")
-                            .description("返回问候语 hello pox，当用户想要获取问候信息时调用此工具")
-                            .parameters(ChatFunctionParameters.builder()
-                                    .type("object")
-                                    .build())
-                            .build())
-                    .build();
+            // 1. 加载 Agent 的工具列表（委托给 FunctionToolExecutor）
+            List<ChatTool> tools = functionToolExecutor.loadAgentTools(request.getAgentId());
+            
+            if (tools.isEmpty()) {
+                log.info("未找到可用工具，使用普通对话模式");
+                // 如果没有工具，降级为普通对话
+                return chat(request);
+            }
 
-            log.info("定义工具: hello_pox");
+            log.info("加载到 {} 个工具", tools.size());
 
             // 2. 构建带工具的请求
-            ChatCompletionCreateParams requestWithTools = buildChatRequestWithTools(
-                    request, 
-                    List.of(helloPoxTool)
-            );
+            ChatCompletionCreateParams requestWithTools = buildChatRequestWithTools(request, tools);
 
             // 3. 第一次调用 AI（判断是否需要工具）
             log.info("第一次调用 AI - 判断是否需要工具调用");
@@ -299,40 +295,16 @@ public class ZhipuServiceImpl implements IZhipuService {
             if (toolCalls != null && !toolCalls.isEmpty()) {
                 log.info("AI 请求调用工具，数量: {}", toolCalls.size());
 
-                // 5. 执行工具调用
-                var toolCall = toolCalls.get(0);
-                String toolName = toolCall.getFunction().getName();
-                String toolCallId = toolCall.getId();
+                // 5. 执行所有工具调用（委托给 FunctionToolExecutor）
+                List<ChatMessage> toolResultMessages = functionToolExecutor.executeToolCalls(
+                        toolCalls, request.getAgentId());
                 
-                log.info("工具名称: {}, 工具调用ID: {}", toolName, toolCallId);
-
-                // 执行实际工具
-                String toolResult;
-                if ("hello_pox".equals(toolName)) {
-                    toolResult = helloPoxToolService.execute();
-                    log.info("工具执行成功，结果: {}", toolResult);
-                } else {
-                    toolResult = "未知工具: " + toolName;
-                    log.warn("未知工具调用: {}", toolName);
-                }
-
-                // 6. 构建包含工具结果的消息列表
+                // 6. 构建包含工具结果的完整上下文
                 List<ChatMessage> messagesWithToolResult = new ArrayList<>();
+                messagesWithToolResult.addAll(convertMessages(request.getMessages())); // 原始对话
+                messagesWithToolResult.add(message); // AI的工具调用请求
+                messagesWithToolResult.addAll(toolResultMessages); // 所有工具结果
                 
-                // 添加原始对话消息
-                messagesWithToolResult.addAll(convertMessages(request.getMessages()));
-                
-                // 添加 AI 的工具调用请求消息
-                messagesWithToolResult.add(message);
-                
-                // 添加工具返回结果消息
-                ChatMessage toolResultMessage = ChatMessage.builder()
-                        .role("tool")
-                        .content(toolResult)
-                        .toolCallId(toolCallId)
-                        .build();
-                messagesWithToolResult.add(toolResultMessage);
-
                 log.info("构建工具结果消息，准备第二次调用 AI");
 
                 // 7. 第二次调用 AI（基于工具结果生成回答）

@@ -11,7 +11,7 @@ import java.util.Map;
  * 创建工具请求对象
  */
 @Data
-public class ToolCreateRequest {
+public class FunctionToolCreateRequest {
 
     /**
      * 工具名称

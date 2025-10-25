@@ -436,8 +436,9 @@ const fetchModels = async () => {
 // 获取 Agent 列表
 const fetchAgents = async () => {
   try {
-    const response = await getAgentList({ status: 'ACTIVE', size: 100 })
-    agents.value = response.data.content || []
+    const response = await getAgentList({ status: 'ACTIVE', page: 1, size: 100 })
+    // MyBatis-Plus 分页响应格式
+    agents.value = response.data.records || []
     console.log('[ChatView] 获取到 Agent 列表:', agents.value.length)
   } catch (error) {
     console.error('[ChatView] 获取 Agent 列表失败:', error)

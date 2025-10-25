@@ -35,6 +35,11 @@ public class AgentToolDTO {
     private String description;
 
     /**
+     * 工具类型（HTTP/BUILTIN）
+     */
+    private String toolType;
+
+    /**
      * 工具调用端点
      */
     private String endpoint;

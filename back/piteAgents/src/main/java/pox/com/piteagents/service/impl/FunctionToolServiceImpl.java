@@ -15,18 +15,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import pox.com.piteagents.entity.dto.request.AgentToolBindRequest;
-import pox.com.piteagents.entity.dto.request.ToolCreateRequest;
-import pox.com.piteagents.entity.dto.request.ToolUpdateRequest;
+import pox.com.piteagents.entity.dto.request.FunctionToolCreateRequest;
+import pox.com.piteagents.entity.dto.request.FunctionToolUpdateRequest;
 import pox.com.piteagents.entity.dto.response.AgentToolDTO;
-import pox.com.piteagents.entity.dto.response.ToolDefinitionDTO;
+import pox.com.piteagents.entity.dto.response.FunctionToolDefinitionDTO;
 import pox.com.piteagents.entity.po.AgentPO;
 import pox.com.piteagents.entity.po.AgentToolPO;
-import pox.com.piteagents.entity.po.ToolDefinitionPO;
+import pox.com.piteagents.entity.po.FunctionToolDefinitionPO;
 import pox.com.piteagents.exception.ZhipuApiException;
 import pox.com.piteagents.mapper.AgentMapper;
 import pox.com.piteagents.mapper.AgentToolMapper;
-import pox.com.piteagents.mapper.ToolDefinitionMapper;
-import pox.com.piteagents.service.IToolService;
+import pox.com.piteagents.mapper.FunctionToolDefinitionMapper;
+import pox.com.piteagents.service.IFunctionToolService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,9 +37,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ToolServiceImpl implements IToolService {
+public class FunctionToolServiceImpl implements IFunctionToolService {
 
-    private final ToolDefinitionMapper toolDefinitionMapper;
+    private final FunctionToolDefinitionMapper functionToolDefinitionMapper;
     private final AgentToolMapper agentToolMapper;
     private final AgentMapper agentMapper;
     private final ObjectMapper objectMapper;
@@ -49,20 +49,34 @@ public class ToolServiceImpl implements IToolService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ToolDefinitionDTO createTool(ToolCreateRequest request) {
+    public FunctionToolDefinitionDTO createTool(FunctionToolCreateRequest request) {
         log.info("创建工具定义: {}", request.getName());
 
         // 名称唯一校验
-        Long count = toolDefinitionMapper.selectCount(
-                Wrappers.<ToolDefinitionPO>lambdaQuery().eq(ToolDefinitionPO::getName, request.getName())
+        Long count = functionToolDefinitionMapper.selectCount(
+                Wrappers.<FunctionToolDefinitionPO>lambdaQuery().eq(FunctionToolDefinitionPO::getName, request.getName())
         );
         if (count != null && count > 0) {
             throw new IllegalArgumentException("工具名称已存在: " + request.getName());
         }
 
-        ToolDefinitionPO tool = ToolDefinitionPO.builder()
+        // 验证工具类型
+        String toolType = request.getToolType();
+        if (toolType == null || toolType.trim().isEmpty()) {
+            toolType = "HTTP";
+        }
+        if (!"HTTP".equals(toolType) && !"BUILTIN".equals(toolType)) {
+            throw new IllegalArgumentException("工具类型必须是 HTTP 或 BUILTIN");
+        }
+
+        // HTTP 工具必须有 endpoint
+        if ("HTTP".equals(toolType) && !StringUtils.hasText(request.getEndpoint())) {
+            throw new IllegalArgumentException("HTTP 工具必须指定 endpoint");
+        }
+
+        FunctionToolDefinitionPO tool = FunctionToolDefinitionPO.builder()
                 .name(request.getName())
-                .isBuiltin(request.getIsBuiltin() != null ? request.getIsBuiltin() : false)
+                .toolType(toolType)
                 .description(request.getDescription())
                 .endpoint(request.getEndpoint())
                 .method(request.getMethod() != null ? request.getMethod().toUpperCase(Locale.ROOT) : "POST")
@@ -73,26 +87,26 @@ public class ToolServiceImpl implements IToolService {
                 .isActive(request.getIsActive() != null ? request.getIsActive() : Boolean.TRUE)
                 .build();
 
-        toolDefinitionMapper.insert(tool);
+        functionToolDefinitionMapper.insert(tool);
         log.info("工具创建成功，ID: {}", tool.getId());
         return convertToDTO(tool);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ToolDefinitionDTO updateTool(Long id, ToolUpdateRequest request) {
+    public FunctionToolDefinitionDTO updateTool(Long id, FunctionToolUpdateRequest request) {
         log.info("更新工具定义，ID: {}", id);
 
-        ToolDefinitionPO tool = toolDefinitionMapper.selectById(id);
+        FunctionToolDefinitionPO tool = functionToolDefinitionMapper.selectById(id);
         if (tool == null) {
             throw new ZhipuApiException(404, "工具不存在，ID: " + id);
         }
 
         if (StringUtils.hasText(request.getName()) && !request.getName().equals(tool.getName())) {
-            Long count = toolDefinitionMapper.selectCount(
-                    Wrappers.<ToolDefinitionPO>lambdaQuery()
-                            .eq(ToolDefinitionPO::getName, request.getName())
-                            .ne(ToolDefinitionPO::getId, id)
+            Long count = functionToolDefinitionMapper.selectCount(
+                    Wrappers.<FunctionToolDefinitionPO>lambdaQuery()
+                            .eq(FunctionToolDefinitionPO::getName, request.getName())
+                            .ne(FunctionToolDefinitionPO::getId, id)
             );
             if (count != null && count > 0) {
                 throw new IllegalArgumentException("工具名称已存在: " + request.getName());
@@ -125,7 +139,7 @@ public class ToolServiceImpl implements IToolService {
             tool.setIsActive(request.getIsActive());
         }
 
-        toolDefinitionMapper.updateById(tool);
+        functionToolDefinitionMapper.updateById(tool);
         log.info("工具更新成功");
         return convertToDTO(tool);
     }
@@ -135,7 +149,7 @@ public class ToolServiceImpl implements IToolService {
     public void deleteTool(Long id) {
         log.info("删除工具定义，ID: {}", id);
 
-        ToolDefinitionPO tool = toolDefinitionMapper.selectById(id);
+        FunctionToolDefinitionPO tool = functionToolDefinitionMapper.selectById(id);
         if (tool == null) {
             throw new ZhipuApiException(404, "工具不存在，ID: " + id);
         }
@@ -145,23 +159,23 @@ public class ToolServiceImpl implements IToolService {
                 .eq(AgentToolPO::getToolId, id);
         agentToolMapper.delete(queryWrapper);
 
-        toolDefinitionMapper.deleteById(id);
+        functionToolDefinitionMapper.deleteById(id);
         log.info("工具删除成功");
     }
 
     @Override
     @Transactional(readOnly = true)
-    public IPage<ToolDefinitionDTO> listTools(Boolean isActive, IPage<ToolDefinitionDTO> page) {
+    public IPage<FunctionToolDefinitionDTO> listTools(Boolean isActive, IPage<FunctionToolDefinitionDTO> page) {
         log.info("分页查询工具列表，isActive: {}, page: {}", isActive, page);
 
         // 构建查询条件
-        LambdaQueryWrapper<ToolDefinitionPO> queryWrapper = Wrappers.lambdaQuery();
+        LambdaQueryWrapper<FunctionToolDefinitionPO> queryWrapper = Wrappers.lambdaQuery();
         if (isActive != null) {
-            queryWrapper.eq(ToolDefinitionPO::getIsActive, isActive);
+            queryWrapper.eq(FunctionToolDefinitionPO::getIsActive, isActive);
         }
 
         // 创建 MyBatis-Plus 分页对象
-        Page<ToolDefinitionPO> mpPage = new Page<>(page.getCurrent(), page.getSize());
+        Page<FunctionToolDefinitionPO> mpPage = new Page<>(page.getCurrent(), page.getSize());
         
         // 复制排序信息
         if (page.orders() != null && !page.orders().isEmpty()) {
@@ -169,10 +183,10 @@ public class ToolServiceImpl implements IToolService {
         }
         
         // 分页查询
-        IPage<ToolDefinitionPO> pageResult = toolDefinitionMapper.selectPage(mpPage, queryWrapper);
+        IPage<FunctionToolDefinitionPO> pageResult = functionToolDefinitionMapper.selectPage(mpPage, queryWrapper);
 
         // 转换为 DTO
-        Page<ToolDefinitionDTO> resultPage = new Page<>(pageResult.getCurrent(), pageResult.getSize(), pageResult.getTotal());
+        Page<FunctionToolDefinitionDTO> resultPage = new Page<>(pageResult.getCurrent(), pageResult.getSize(), pageResult.getTotal());
         resultPage.setRecords(pageResult.getRecords().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList()));
@@ -187,8 +201,8 @@ public class ToolServiceImpl implements IToolService {
 
     @Override
     @Transactional(readOnly = true)
-    public ToolDefinitionDTO getTool(Long id) {
-        ToolDefinitionPO tool = toolDefinitionMapper.selectById(id);
+    public FunctionToolDefinitionDTO getTool(Long id) {
+        FunctionToolDefinitionPO tool = functionToolDefinitionMapper.selectById(id);
         if (tool == null) {
             throw new ZhipuApiException(404, "工具不存在，ID: " + id);
         }
@@ -210,7 +224,7 @@ public class ToolServiceImpl implements IToolService {
         }
 
         // 校验工具是否存在
-        List<ToolDefinitionPO> tools = toolDefinitionMapper.selectBatchIds(request.getToolIds());
+        List<FunctionToolDefinitionPO> tools = functionToolDefinitionMapper.selectBatchIds(request.getToolIds());
         if (tools.size() != request.getToolIds().size()) {
             throw new IllegalArgumentException("存在无效的工具 ID");
         }
@@ -295,13 +309,13 @@ public class ToolServiceImpl implements IToolService {
                 .map(AgentToolPO::getToolId)
                 .collect(Collectors.toSet());
 
-        List<ToolDefinitionPO> tools = toolDefinitionMapper.selectBatchIds(toolIds);
-        Map<Long, ToolDefinitionPO> toolMap = tools.stream()
-                .collect(Collectors.toMap(ToolDefinitionPO::getId, item -> item));
+        List<FunctionToolDefinitionPO> tools = functionToolDefinitionMapper.selectBatchIds(toolIds);
+        Map<Long, FunctionToolDefinitionPO> toolMap = tools.stream()
+                .collect(Collectors.toMap(FunctionToolDefinitionPO::getId, item -> item));
 
         return relations.stream()
                 .map(relation -> {
-                    ToolDefinitionPO tool = toolMap.get(relation.getToolId());
+                    FunctionToolDefinitionPO tool = toolMap.get(relation.getToolId());
                     if (tool == null) {
                         return null;
                     }
@@ -309,6 +323,7 @@ public class ToolServiceImpl implements IToolService {
                             .toolId(tool.getId())
                             .name(tool.getName())
                             .description(tool.getDescription())
+                            .toolType(tool.getToolType())
                             .endpoint(tool.getEndpoint())
                             .method(tool.getMethod())
                             .parameters(fromJsonToObjectMap(tool.getParameters()))
@@ -322,11 +337,11 @@ public class ToolServiceImpl implements IToolService {
                 .collect(Collectors.toList());
     }
 
-    private ToolDefinitionDTO convertToDTO(ToolDefinitionPO tool) {
-        return ToolDefinitionDTO.builder()
+    private FunctionToolDefinitionDTO convertToDTO(FunctionToolDefinitionPO tool) {
+        return FunctionToolDefinitionDTO.builder()
                 .id(tool.getId())
                 .name(tool.getName())
-                .toolType(tool.getIsBuiltin() ? "BUILTIN" : "HTTP") // 兼容前端显示
+                .toolType(tool.getToolType())
                 .description(tool.getDescription())
                 .endpoint(tool.getEndpoint())
                 .method(tool.getMethod())

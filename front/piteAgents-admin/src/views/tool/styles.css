@@ -173,6 +173,19 @@
   font-size: 1rem;
   color: var(--tool-gray-700);
   margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tool-implementation {
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--tool-gray-500);
+  background: var(--tool-gray-50);
+  border-radius: var(--tool-radius-lg);
+  padding: 0.25rem 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .tool-desc {
@@ -589,6 +602,50 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.tool-info-notice {
+  background: var(--tool-gray-50);
+  border: 1px solid var(--tool-gray-200);
+  border-radius: var(--tool-radius-lg);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tool-info-notice p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--tool-gray-600);
+  line-height: 1.5;
+}
+
+.tool-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tool-type-badge.http {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--tool-primary-dark);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.tool-type-badge.local {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--tool-success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.tool-type-badge.builtin {
+  background: rgba(168, 85, 247, 0.1);
+  color: #7c3aed;
+  border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
 @media (max-width: 768px) {

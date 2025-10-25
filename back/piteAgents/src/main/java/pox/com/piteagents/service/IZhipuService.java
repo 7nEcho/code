@@ -35,7 +35,6 @@ public interface IZhipuService {
      * 带工具调用的对话接口
      * <p>
      * 支持 AI 主动调用工具获取信息后再生成回答。
-     * 用于测试和验证工具调用功能。
      * </p>
      *
      * @param request 对话请求对象

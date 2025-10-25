@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @TableName("tool_definition")
-public class ToolDefinitionPO implements Serializable {
+public class FunctionToolDefinitionPO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

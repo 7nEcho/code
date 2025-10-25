@@ -16,6 +16,7 @@ import java.util.List;
  * 对话请求对象
  * <p>
  * 用于接收客户端的对话请求，包含消息列表、模型选择、温度参数等配置。
+ * 支持指定Agent ID以启用工具调用功能。
  * </p>
  *
  * @author piteAgents
@@ -26,6 +27,16 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRequest {
+
+    /**
+     * Agent ID（可选）
+     * <p>
+     * 指定使用哪个Agent进行对话。
+     * - 如果指定，会自动加载该Agent的工具列表，启用工具调用功能
+     * - 如果不指定，进行普通对话，不启用工具调用
+     * </p>
+     */
+    private Long agentId;
 
     /**
      * 消息列表

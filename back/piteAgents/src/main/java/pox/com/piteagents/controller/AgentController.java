@@ -3,10 +3,7 @@ package pox.com.piteagents.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springframework.web.bind.annotation.*;
 import pox.com.piteagents.entity.dto.common.ApiResponse;
 import pox.com.piteagents.entity.dto.request.AgentCreateRequest;
@@ -16,7 +13,8 @@ import pox.com.piteagents.entity.dto.response.AgentDTO;
 import pox.com.piteagents.entity.dto.request.AgentToolBindRequest;
 import pox.com.piteagents.entity.dto.response.AgentToolDTO;
 import pox.com.piteagents.service.IAgentService;
-import pox.com.piteagents.service.IToolService;
+import pox.com.piteagents.service.IFunctionToolService;
+import pox.com.piteagents.common.utils.PaginationUtils;
 
 /**
  * Agent 控制器
@@ -34,7 +32,8 @@ import pox.com.piteagents.service.IToolService;
 public class AgentController {
 
     private final IAgentService agentService;
-    private final IToolService toolService;
+    private final IFunctionToolService toolService;
+    private final PaginationUtils paginationUtils;
 
     /**
      * 创建 Agent
@@ -55,23 +54,31 @@ public class AgentController {
      * @param category 分类（可选）
      * @param status 状态（可选）
      * @param keyword 关键词（可选）
-     * @param page 页码（默认0）
-     * @param size 每页大小（默认10）
+     * @param page 页码（默认1，MyBatis-Plus 从1开始）
+     * @param size 每页大小（使用配置的默认值）
+     * @param sortField 排序字段（可选）
+     * @param sortDirection 排序方向（可选）
      * @return Agent 分页列表
      */
     @GetMapping
-    public ApiResponse<Page<AgentDTO>> listAgents(
+    public ApiResponse<IPage<AgentDTO>> listAgents(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortDirection) {
         
-        log.info("查询 Agent 列表，category: {}, status: {}, keyword: {}, page: {}, size: {}", 
-                 category, status, keyword, page, size);
+        log.info("查询 Agent 列表，category: {}, status: {}, keyword: {}, page: {}, size: {}, sortField: {}, sortDirection: {}", 
+                 category, status, keyword, page, size, sortField, sortDirection);
         
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<AgentDTO> agents = agentService.listAgents(category, status, keyword, pageable);
+        // 使用分页工具类创建分页对象
+        IPage<AgentDTO> pageParam = paginationUtils.createPage(page, size, sortField, sortDirection);
+        IPage<AgentDTO> agents = agentService.listAgents(category, status, keyword, pageParam);
+        
+        // 记录分页查询信息
+        paginationUtils.logPaginationInfo(agents, "查询Agent列表");
         
         return ApiResponse.success(agents);
     }

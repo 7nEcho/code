@@ -82,7 +82,21 @@ zhipu:
   # 默认温度参数（0.0-1.0，值越高输出越随机）
   default-temperature: 0.7
   # 最大token数
-  max-tokens: 2000
+  max-tokens: 200000
+
+# ===========================
+# PiteAgents 业务配置
+# ===========================
+pite-agents:
+  pagination:
+    # 默认页面大小
+    default-page-size: 20
+    # 最大页面大小（防止恶意查询）
+    max-page-size: 1000
+    # 默认排序字段
+    default-sort-field: "createdAt"
+    # 默认排序方向 (ASC/DESC)
+    default-sort-direction: "DESC"
 
 # ===========================
 # 日志配置

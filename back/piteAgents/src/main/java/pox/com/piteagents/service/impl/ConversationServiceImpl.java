@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pox.com.piteagents.entity.dto.common.Message;
@@ -21,7 +20,9 @@ import pox.com.piteagents.mapper.ConversationMessageMapper;
 import pox.com.piteagents.mapper.ConversationSessionMapper;
 import pox.com.piteagents.service.IConversationService;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -131,7 +132,7 @@ public class ConversationServiceImpl implements IConversationService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ConversationSessionDTO> listSessions(Long agentId, Pageable pageable) {
+    public IPage<ConversationSessionDTO> listSessions(Long agentId, IPage<ConversationSessionDTO> page) {
         log.info("查询会话列表，Agent ID: {}", agentId);
 
         // 构建查询条件
@@ -139,14 +140,44 @@ public class ConversationServiceImpl implements IConversationService {
         if (agentId != null) {
             queryWrapper.eq(ConversationSessionPO::getAgentId, agentId);
         }
-        queryWrapper.orderByDesc(ConversationSessionPO::getUpdatedAt);
 
+        // 创建 MyBatis-Plus 分页对象
+        Page<ConversationSessionPO> mpPage = new Page<>(page.getCurrent(), page.getSize());
+        
+        // 复制排序信息
+        if (page.orders() != null && !page.orders().isEmpty()) {
+            mpPage.addOrder(page.orders());
+        }
+        
         // 分页查询
-        Page<ConversationSessionPO> mpPage = new Page<>(pageable.getPageNumber() + 1, pageable.getPageSize());
         IPage<ConversationSessionPO> sessionPage = sessionMapper.selectPage(mpPage, queryWrapper);
 
-        // 转换并加载 Agent 名称
-        return convertToSpringPage(sessionPage, pageable);
+        // 查询所有涉及的 Agent ID 并批量加载 Agent 名称
+        List<Long> agentIds = sessionPage.getRecords().stream()
+                .map(ConversationSessionPO::getAgentId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        Map<Long, String> agentNameMap = new HashMap<>();
+        if (!agentIds.isEmpty()) {
+            List<AgentPO> agents = agentMapper.selectBatchIds(agentIds);
+            agentNameMap = agents.stream()
+                    .collect(Collectors.toMap(AgentPO::getId, AgentPO::getName));
+        }
+        
+        // 转换为 DTO
+        Map<Long, String> finalAgentNameMap = agentNameMap;
+        Page<ConversationSessionDTO> resultPage = new Page<>(sessionPage.getCurrent(), sessionPage.getSize(), sessionPage.getTotal());
+        resultPage.setRecords(sessionPage.getRecords().stream()
+                .map(session -> convertSessionToDTO(session, finalAgentNameMap.get(session.getAgentId())))
+                .collect(Collectors.toList()));
+        
+        // 复制排序信息到结果
+        if (sessionPage.orders() != null && !sessionPage.orders().isEmpty()) {
+            resultPage.addOrder(sessionPage.orders());
+        }
+        
+        return resultPage;
     }
 
     @Override
@@ -165,7 +196,7 @@ public class ConversationServiceImpl implements IConversationService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ConversationMessageDTO> getSessionMessages(Long sessionId, Pageable pageable) {
+    public IPage<ConversationMessageDTO> getSessionMessages(Long sessionId, IPage<ConversationMessageDTO> page) {
         log.info("查询会话消息，会话ID: {}", sessionId);
 
         // 验证会话是否存在
@@ -176,20 +207,33 @@ public class ConversationServiceImpl implements IConversationService {
             throw new ZhipuApiException(404, "会话不存在，ID: " + sessionId);
         }
 
-        // 分页查询消息
+        // 构建查询条件
         LambdaQueryWrapper<ConversationMessagePO> queryWrapper = Wrappers.<ConversationMessagePO>lambdaQuery()
-                .eq(ConversationMessagePO::getSessionId, sessionId)
-                .orderByAsc(ConversationMessagePO::getCreatedAt);
+                .eq(ConversationMessagePO::getSessionId, sessionId);
 
-        Page<ConversationMessagePO> mpPage = new Page<>(pageable.getPageNumber() + 1, pageable.getPageSize());
+        // 创建 MyBatis-Plus 分页对象
+        Page<ConversationMessagePO> mpPage = new Page<>(page.getCurrent(), page.getSize());
+        
+        // 复制排序信息
+        if (page.orders() != null && !page.orders().isEmpty()) {
+            mpPage.addOrder(page.orders());
+        }
+        
+        // 分页查询消息
         IPage<ConversationMessagePO> messagePage = messageMapper.selectPage(mpPage, queryWrapper);
 
-        // 转换为 Spring Data Page
-        java.util.List<ConversationMessageDTO> content = messagePage.getRecords().stream()
+        // 转换为 DTO
+        Page<ConversationMessageDTO> resultPage = new Page<>(messagePage.getCurrent(), messagePage.getSize(), messagePage.getTotal());
+        resultPage.setRecords(messagePage.getRecords().stream()
                 .map(this::convertMessageToDTO)
-                .collect(Collectors.toList());
-
-        return new org.springframework.data.domain.PageImpl<>(content, pageable, messagePage.getTotal());
+                .collect(Collectors.toList()));
+        
+        // 复制排序信息到结果
+        if (messagePage.orders() != null && !messagePage.orders().isEmpty()) {
+            resultPage.addOrder(messagePage.orders());
+        }
+        
+        return resultPage;
     }
 
     @Override
@@ -277,25 +321,4 @@ public class ConversationServiceImpl implements IConversationService {
                 .build();
     }
 
-    /**
-     * 将 MyBatis-Plus Page 转换为 Spring Data Page
-     *
-     * @param mpPage MyBatis-Plus 分页对象
-     * @param pageable Spring Data 分页参数
-     * @return Spring Data Page 对象
-     */
-    private org.springframework.data.domain.Page<ConversationSessionDTO> convertToSpringPage(
-            IPage<ConversationSessionPO> mpPage,
-            Pageable pageable) {
-
-        List<ConversationSessionDTO> content = mpPage.getRecords().stream()
-                .map(session -> {
-                    AgentPO agent = agentMapper.selectById(session.getAgentId());
-                    String agentName = agent != null ? agent.getName() : "未知Agent";
-                    return convertSessionToDTO(session, agentName);
-                })
-                .collect(Collectors.toList());
-
-        return new org.springframework.data.domain.PageImpl<>(content, pageable, mpPage.getTotal());
-    }
 }

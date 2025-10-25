@@ -167,7 +167,7 @@ public class AgentServiceImpl implements IAgentService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<AgentDTO> listAgents(String category, String status, String keyword, org.springframework.data.domain.Pageable pageable) {
+    public IPage<AgentDTO> listAgents(String category, String status, String keyword, IPage<AgentDTO> page) {
         log.info("查询 Agent 列表，category: {}, status: {}, keyword: {}", category, status, keyword);
 
         // 构建查询条件
@@ -189,16 +189,30 @@ public class AgentServiceImpl implements IAgentService {
         if (status != null && !status.trim().isEmpty()) {
             queryWrapper.eq(AgentPO::getStatus, status);
         }
-        
-        // 排序
-        queryWrapper.orderByDesc(AgentPO::getCreatedAt);
 
+        // 创建 MyBatis-Plus 分页对象，使用传入的分页参数
+        Page<AgentPO> mpPage = new Page<>(page.getCurrent(), page.getSize());
+        
+        // 复制排序信息
+        if (page.orders() != null && !page.orders().isEmpty()) {
+            mpPage.addOrder(page.orders());
+        }
+        
         // 分页查询
-        Page<AgentPO> mpPage = new Page<>(pageable.getPageNumber() + 1, pageable.getPageSize());
         IPage<AgentPO> agentPage = agentMapper.selectPage(mpPage, queryWrapper);
 
-        // 转换为 Spring Data Page
-        return convertToSpringPage(agentPage, pageable);
+        // 转换为 DTO 并返回 MyBatis-Plus IPage
+        Page<AgentDTO> resultPage = new Page<>(agentPage.getCurrent(), agentPage.getSize(), agentPage.getTotal());
+        resultPage.setRecords(agentPage.getRecords().stream()
+                .map(this::convertToDTO)
+                .collect(java.util.stream.Collectors.toList()));
+        
+        // 复制排序信息到结果
+        if (agentPage.orders() != null && !agentPage.orders().isEmpty()) {
+            resultPage.addOrder(agentPage.orders());
+        }
+        
+        return resultPage;
     }
 
     @Override
@@ -326,25 +340,4 @@ public class AgentServiceImpl implements IAgentService {
                 .build();
     }
 
-    /**
-     * 将 MyBatis-Plus Page 转换为 Spring Data Page
-     *
-     * @param mpPage MyBatis-Plus 分页对象
-     * @param pageable Spring Data 分页参数
-     * @return Spring Data Page 对象
-     */
-    private org.springframework.data.domain.Page<AgentDTO> convertToSpringPage(
-            IPage<AgentPO> mpPage, 
-            org.springframework.data.domain.Pageable pageable) {
-        
-        java.util.List<AgentDTO> content = mpPage.getRecords().stream()
-                .map(this::convertToDTO)
-                .collect(java.util.stream.Collectors.toList());
-        
-        return new org.springframework.data.domain.PageImpl<>(
-                content,
-                pageable,
-                mpPage.getTotal()
-        );
-    }
 }

@@ -3,15 +3,14 @@ package pox.com.piteagents.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springframework.web.bind.annotation.*;
 import pox.com.piteagents.entity.dto.common.ApiResponse;
-import pox.com.piteagents.entity.dto.request.ToolCreateRequest;
-import pox.com.piteagents.entity.dto.request.ToolUpdateRequest;
-import pox.com.piteagents.entity.dto.response.ToolDefinitionDTO;
-import pox.com.piteagents.service.IToolService;
+import pox.com.piteagents.entity.dto.request.FunctionToolCreateRequest;
+import pox.com.piteagents.entity.dto.request.FunctionToolUpdateRequest;
+import pox.com.piteagents.entity.dto.response.FunctionToolDefinitionDTO;
+import pox.com.piteagents.service.IFunctionToolService;
+import pox.com.piteagents.common.utils.PaginationUtils;
 
 /**
  * 工具管理控制器
@@ -22,7 +21,8 @@ import pox.com.piteagents.service.IToolService;
 @RequiredArgsConstructor
 public class FunctionToolController {
 
-    private final IToolService toolService;
+    private final IFunctionToolService toolService;
+    private final PaginationUtils paginationUtils;
 
     /**
      * 创建工具
@@ -31,9 +31,9 @@ public class FunctionToolController {
      * @return 工具定义
      */
     @PostMapping
-    public ApiResponse<ToolDefinitionDTO> createTool(@Valid @RequestBody ToolCreateRequest request) {
+    public ApiResponse<FunctionToolDefinitionDTO> createTool(@Valid @RequestBody FunctionToolCreateRequest request) {
         log.info("收到创建工具请求: {}", request.getName());
-        ToolDefinitionDTO tool = toolService.createTool(request);
+        FunctionToolDefinitionDTO tool = toolService.createTool(request);
         return ApiResponse.success(tool);
     }
 
@@ -45,10 +45,10 @@ public class FunctionToolController {
      * @return 工具定义
      */
     @PutMapping("/{id}")
-    public ApiResponse<ToolDefinitionDTO> updateTool(@PathVariable Long id,
-                                                     @Valid @RequestBody ToolUpdateRequest request) {
+    public ApiResponse<FunctionToolDefinitionDTO> updateTool(@PathVariable Long id,
+                                                             @Valid @RequestBody FunctionToolUpdateRequest request) {
         log.info("收到更新工具请求，ID: {}", id);
-        ToolDefinitionDTO tool = toolService.updateTool(id, request);
+        FunctionToolDefinitionDTO tool = toolService.updateTool(id, request);
         return ApiResponse.success(tool);
     }
 
@@ -68,19 +68,30 @@ public class FunctionToolController {
     /**
      * 分页查询工具列表
      *
-     * @param page 页码
-     * @param size 每页大小
+     * @param page 页码（默认1）
+     * @param size 每页大小（使用配置的默认值）
      * @param isActive 是否启用
+     * @param sortField 排序字段（可选）
+     * @param sortDirection 排序方向（可选）
      * @return 工具分页列表
      */
     @GetMapping
-    public ApiResponse<Page<ToolDefinitionDTO>> listTools(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) Boolean isActive) {
+    public ApiResponse<IPage<FunctionToolDefinitionDTO>> listTools(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortDirection) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<ToolDefinitionDTO> tools = toolService.listTools(isActive, pageable);
+        log.info("分页查询工具列表，page: {}, size: {}, isActive: {}, sortField: {}, sortDirection: {}", 
+                page, size, isActive, sortField, sortDirection);
+
+        // 使用分页工具类创建分页对象
+        IPage<FunctionToolDefinitionDTO> pageParam = paginationUtils.createPage(page, size, sortField, sortDirection);
+        IPage<FunctionToolDefinitionDTO> tools = toolService.listTools(isActive, pageParam);
+        
+        paginationUtils.logPaginationInfo(tools, "查询工具列表");
+        
         return ApiResponse.success(tools);
     }
 
@@ -91,9 +102,9 @@ public class FunctionToolController {
      * @return 工具定义
      */
     @GetMapping("/{id}")
-    public ApiResponse<ToolDefinitionDTO> getTool(@PathVariable Long id) {
+    public ApiResponse<FunctionToolDefinitionDTO> getTool(@PathVariable Long id) {
         log.info("查询工具详情，ID: {}", id);
-        ToolDefinitionDTO tool = toolService.getTool(id);
+        FunctionToolDefinitionDTO tool = toolService.getTool(id);
         return ApiResponse.success(tool);
     }
 }

@@ -13,7 +13,5 @@ import pox.com.piteagents.entity.po.AgentToolPO;
  * @since 1.0.0
  */
 public interface AgentToolMapper extends BaseMapper<AgentToolPO> {
-    // MyBatis-Plus 提供的基础 CRUD 方法已满足需求
-    // 复杂查询可在 ToolDefinitionMapper 中定义
 }
 
