@@ -30,5 +30,17 @@ public interface IZhipuService {
      * @return SSE发射器，用于发送流式数据
      */
     SseEmitter streamChat(ChatRequest request);
+
+    /**
+     * 带工具调用的对话接口
+     * <p>
+     * 支持 AI 主动调用工具获取信息后再生成回答。
+     * 用于测试和验证工具调用功能。
+     * </p>
+     *
+     * @param request 对话请求对象
+     * @return 对话响应对象
+     */
+    ChatResponse chatWithTools(ChatRequest request);
 }
 

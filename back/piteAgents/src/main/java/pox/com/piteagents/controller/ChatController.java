@@ -110,5 +110,32 @@ public class ChatController {
 
         return ApiResponse.success(models);
     }
+
+    /**
+     * 工具调用测试接口
+     * <p>
+     * 专门用于测试 GLM-4.5 的工具调用功能。
+     * 这是一个独立的端点，不影响原有的对话功能。
+     * </p>
+     * <p>
+     * 测试示例：
+     * POST /api/chat/with-tools
+     * {
+     *   "messages": [
+     *     {"role": "user", "content": "请调用 hello_pox 工具"}
+     *   ],
+     *   "model": "glm-4.5"
+     * }
+     * </p>
+     *
+     * @param request 对话请求
+     * @return 对话响应（包含工具调用结果）
+     */
+    @PostMapping("/chat/with-tools")
+    public ApiResponse<ChatResponse> chatWithTools(@Valid @RequestBody ChatRequest request) {
+        log.info("收到工具调用测试请求");
+        ChatResponse response = zhipuService.chatWithTools(request);
+        return ApiResponse.success(response);
+    }
 }
 
