@@ -5,15 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import pox.com.piteagents.common.utils.JsonUtils;
 import pox.com.piteagents.entity.dto.request.AgentToolBindRequest;
 import pox.com.piteagents.entity.dto.request.FunctionToolCreateRequest;
 import pox.com.piteagents.entity.dto.request.FunctionToolUpdateRequest;
@@ -42,7 +40,7 @@ public class FunctionToolServiceImpl implements IFunctionToolService {
     private final FunctionToolDefinitionMapper functionToolDefinitionMapper;
     private final AgentToolMapper agentToolMapper;
     private final AgentMapper agentMapper;
-    private final ObjectMapper objectMapper;
+    private final JsonUtils jsonUtils;
 
     private static final int DEFAULT_TIMEOUT = 30000;
     private static final int DEFAULT_RETRY = 3;
@@ -80,8 +78,8 @@ public class FunctionToolServiceImpl implements IFunctionToolService {
                 .description(request.getDescription())
                 .endpoint(request.getEndpoint())
                 .method(request.getMethod() != null ? request.getMethod().toUpperCase(Locale.ROOT) : "POST")
-                .parameters(toJson(request.getParameters()))
-                .headers(toJson(request.getHeaders()))
+                .parameters(jsonUtils.toJson(request.getParameters()))
+                .headers(jsonUtils.toJson(request.getHeaders()))
                 .timeout(request.getTimeout() != null ? request.getTimeout() : DEFAULT_TIMEOUT)
                 .retryCount(request.getRetryCount() != null ? request.getRetryCount() : DEFAULT_RETRY)
                 .isActive(request.getIsActive() != null ? request.getIsActive() : Boolean.TRUE)
@@ -124,10 +122,10 @@ public class FunctionToolServiceImpl implements IFunctionToolService {
             tool.setMethod(request.getMethod().toUpperCase(Locale.ROOT));
         }
         if (request.getParameters() != null) {
-            tool.setParameters(toJson(request.getParameters()));
+            tool.setParameters(jsonUtils.toJson(request.getParameters()));
         }
         if (request.getHeaders() != null) {
-            tool.setHeaders(toJson(request.getHeaders()));
+            tool.setHeaders(jsonUtils.toJson(request.getHeaders()));
         }
         if (request.getTimeout() != null) {
             tool.setTimeout(request.getTimeout());
@@ -257,7 +255,7 @@ public class FunctionToolServiceImpl implements IFunctionToolService {
                     ? config.getEnabled()
                     : Boolean.TRUE;
             String toolConfigJson = config != null && config.getToolConfig() != null
-                    ? toJson(config.getToolConfig())
+                    ? jsonUtils.toJson(config.getToolConfig())
                     : null;
 
             AgentToolPO existingRelation = existingMap.get(toolId);
@@ -326,11 +324,11 @@ public class FunctionToolServiceImpl implements IFunctionToolService {
                             .toolType(tool.getToolType())
                             .endpoint(tool.getEndpoint())
                             .method(tool.getMethod())
-                            .parameters(fromJsonToObjectMap(tool.getParameters()))
-                            .headers(fromJsonToStringMap(tool.getHeaders()))
+                            .parameters(jsonUtils.fromJsonToObjectMap(tool.getParameters()))
+                            .headers(jsonUtils.fromJsonToStringMap(tool.getHeaders()))
                             .sortOrder(relation.getSortOrder())
                             .enabled(relation.getIsEnabled())
-                            .toolConfig(fromJsonToObjectMap(relation.getToolConfig()))
+                            .toolConfig(jsonUtils.fromJsonToObjectMap(relation.getToolConfig()))
                             .build();
                 })
                 .filter(Objects::nonNull)
@@ -345,48 +343,13 @@ public class FunctionToolServiceImpl implements IFunctionToolService {
                 .description(tool.getDescription())
                 .endpoint(tool.getEndpoint())
                 .method(tool.getMethod())
-                .parameters(fromJsonToObjectMap(tool.getParameters()))
-                .headers(fromJsonToStringMap(tool.getHeaders()))
+                .parameters(jsonUtils.fromJsonToObjectMap(tool.getParameters()))
+                .headers(jsonUtils.fromJsonToStringMap(tool.getHeaders()))
                 .timeout(tool.getTimeout())
                 .retryCount(tool.getRetryCount())
                 .isActive(tool.getIsActive())
                 .createdAt(tool.getCreatedAt())
                 .updatedAt(tool.getUpdatedAt())
                 .build();
-    }
-
-    private String toJson(Object value) {
-        if (value == null) {
-            return null;
-        }
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("JSON 序列化失败: " + e.getMessage(), e);
-        }
-    }
-
-    private Map<String, Object> fromJsonToObjectMap(String json) {
-        if (!StringUtils.hasText(json)) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
-        } catch (JsonProcessingException e) {
-            log.warn("JSON 反序列化失败: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    private Map<String, String> fromJsonToStringMap(String json) {
-        if (!StringUtils.hasText(json)) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
-        } catch (JsonProcessingException e) {
-            log.warn("JSON 反序列化失败: {}", e.getMessage());
-            return null;
-        }
     }
 }

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pox.com.piteagents.common.utils.StringConversionUtils;
 import pox.com.piteagents.entity.dto.common.Message;
 import pox.com.piteagents.entity.dto.response.ConversationMessageDTO;
 import pox.com.piteagents.entity.dto.response.ConversationSessionDTO;
@@ -43,6 +44,7 @@ public class ConversationServiceImpl implements IConversationService {
     private final ConversationSessionMapper sessionMapper;
     private final ConversationMessageMapper messageMapper;
     private final AgentMapper agentMapper;
+    private final StringConversionUtils stringConversionUtils;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -268,17 +270,12 @@ public class ConversationServiceImpl implements IConversationService {
 
     @Override
     public String generateSessionTitle(String content) {
-        if (content == null || content.trim().isEmpty()) {
+        if (stringConversionUtils.isBlank(content)) {
             return "新对话";
         }
 
         // 取前 30 个字符作为标题
-        String title = content.trim();
-        if (title.length() > 30) {
-            title = title.substring(0, 30) + "...";
-        }
-
-        return title;
+        return stringConversionUtils.truncate(content.trim(), 30);
     }
 
     /**

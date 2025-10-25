@@ -28,6 +28,7 @@ import java.util.Set;
 public class PaginationUtils {
 
     private final PaginationProperties paginationProperties;
+    private final StringConversionUtils stringConversionUtils;
 
     /**
      * 允许的排序字段白名单
@@ -89,9 +90,9 @@ public class PaginationUtils {
 
         // 设置排序
         if ("ASC".equalsIgnoreCase(safeSortDirection)) {
-            page.addOrder(OrderItem.asc(convertToDbField(safeSortField)));
+            page.addOrder(OrderItem.asc(stringConversionUtils.camelToSnakeCase(safeSortField)));
         } else {
-            page.addOrder(OrderItem.desc(convertToDbField(safeSortField)));
+            page.addOrder(OrderItem.desc(stringConversionUtils.camelToSnakeCase(safeSortField)));
         }
 
         return page;
@@ -130,32 +131,6 @@ public class PaginationUtils {
             log.warn("尝试使用不安全的排序字段: {}", sortField);
             throw new IllegalArgumentException("不支持的排序字段: " + sortField);
         }
-    }
-
-    /**
-     * 将 Java 字段名转换为数据库字段名
-     * <p>
-     * 将驼峰命名转换为下划线命名，如 createdAt -> created_at
-     * </p>
-     *
-     * @param javaField Java 字段名
-     * @return 数据库字段名
-     */
-    private String convertToDbField(String javaField) {
-        // 简单的驼峰转下划线实现
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < javaField.length(); i++) {
-            char c = javaField.charAt(i);
-            if (Character.isUpperCase(c)) {
-                if (i > 0) {
-                    result.append('_');
-                }
-                result.append(Character.toLowerCase(c));
-            } else {
-                result.append(c);
-            }
-        }
-        return result.toString();
     }
 
     /**

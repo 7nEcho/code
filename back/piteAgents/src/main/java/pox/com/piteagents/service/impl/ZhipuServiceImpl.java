@@ -10,6 +10,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import pox.com.piteagents.config.ZhipuConfig;
 import pox.com.piteagents.common.constant.FinishReason;
 import pox.com.piteagents.entity.dto.common.Message;
+import pox.com.piteagents.entity.dto.common.TokenUsage;
 import pox.com.piteagents.entity.dto.request.ChatRequest;
 import pox.com.piteagents.entity.dto.response.ChatResponse;
 import pox.com.piteagents.entity.dto.response.StreamChatResponse;
@@ -448,7 +449,7 @@ public class ZhipuServiceImpl implements IZhipuService {
         var choice = data.getChoices().get(0);
 
         // 构建Token使用统计
-        ChatResponse.TokenUsage usage = ChatResponse.TokenUsage.builder()
+        TokenUsage usage = TokenUsage.builder()
                 .promptTokens(data.getUsage().getPromptTokens())
                 .completionTokens(data.getUsage().getCompletionTokens())
                 .totalTokens(data.getUsage().getTotalTokens())

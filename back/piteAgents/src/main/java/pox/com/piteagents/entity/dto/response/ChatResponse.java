@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import pox.com.piteagents.entity.dto.common.TokenUsage;
 
 /**
  * 对话响应对象
@@ -62,39 +63,5 @@ public class ChatResponse {
      * </p>
      */
     private TokenUsage usage;
-
-    /**
-     * Token使用统计内部类
-     */
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TokenUsage {
-
-        /**
-         * 提示词token数
-         * <p>
-         * 输入消息消耗的token数量
-         * </p>
-         */
-        private Integer promptTokens;
-
-        /**
-         * 生成token数
-         * <p>
-         * 生成的回复内容消耗的token数量
-         * </p>
-         */
-        private Integer completionTokens;
-
-        /**
-         * 总token数
-         * <p>
-         * promptTokens + completionTokens
-         * </p>
-         */
-        private Integer totalTokens;
-    }
 }
 

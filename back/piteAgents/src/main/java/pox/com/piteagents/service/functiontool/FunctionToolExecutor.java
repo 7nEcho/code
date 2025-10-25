@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import pox.com.piteagents.common.utils.JsonUtils;
+import pox.com.piteagents.common.utils.StringConversionUtils;
 import pox.com.piteagents.entity.dto.response.AgentToolDTO;
 import pox.com.piteagents.entity.po.FunctionToolDefinitionPO;
 import pox.com.piteagents.exception.FunctionToolExecutionException;
@@ -48,6 +50,8 @@ public class FunctionToolExecutor {
     private final FunctionToolRegistry functionToolRegistry;
     private final FunctionToolConverter functionToolConverter;
     private final IFunctionToolService toolService;
+    private final JsonUtils jsonUtils;
+    private final StringConversionUtils stringConversionUtils;
 
     /**
      * 执行工具调用（新的统一接口）
@@ -58,7 +62,7 @@ public class FunctionToolExecutor {
      */
     public String execute(String toolName, String argumentsJson) {
         LocalDateTime startTime = LocalDateTime.now();
-        log.info("🔧 开始执行工具: {}, 参数: {}", toolName, truncateForLog(argumentsJson));
+        log.info("🔧 开始执行工具: {}, 参数: {}", toolName, stringConversionUtils.truncate(argumentsJson, 200));
 
         try {
             // 1. 获取工具实例
@@ -76,7 +80,7 @@ public class FunctionToolExecutor {
             // 4. 记录成功日志
             long durationMs = java.time.Duration.between(startTime, LocalDateTime.now()).toMillis();
             log.info("✅ 工具执行成功: {}, 耗时: {}ms, 结果: {}", 
-                    toolName, durationMs, truncateForLog(result));
+                    toolName, durationMs, stringConversionUtils.truncate(result, 200));
 
             return result;
 
@@ -257,19 +261,6 @@ public class FunctionToolExecutor {
         return url.toString();
     }
 
-    /**
-     * 截断日志内容，避免日志过长
-     */
-    private String truncateForLog(String content) {
-        if (content == null) {
-            return "null";
-        }
-        if (content.length() <= 200) {
-            return content;
-        }
-        return content.substring(0, 200) + "...[截断]";
-    }
-
     // ==================== 工具加载功能 ====================
 
     /**
@@ -378,7 +369,7 @@ public class FunctionToolExecutor {
                 String arguments = getToolCallProperty(toolCallObj, "arguments");
                 String toolCallId = getToolCallProperty(toolCallObj, "id");
 
-                log.info("执行工具调用: {}, ID: {}, 参数: {}", toolName, toolCallId, truncateForLog(arguments));
+                log.info("执行工具调用: {}, ID: {}, 参数: {}", toolName, toolCallId, stringConversionUtils.truncate(arguments, 200));
 
                 // 执行工具
                 String toolResult = executeToolByName(toolName, arguments, agentId);
@@ -472,27 +463,12 @@ public class FunctionToolExecutor {
                 .toolType("HTTP")
                 .endpoint(dto.getEndpoint())
                 .method(dto.getMethod())
-                .parameters(convertMapToJson(dto.getParameters()))
-                .headers(convertMapToJson(dto.getHeaders()))
+                .parameters(jsonUtils.toJson(dto.getParameters()))
+                .headers(jsonUtils.toJson(dto.getHeaders()))
                 .timeout(30000)
                 .retryCount(3)
                 .isActive(true)
                 .build();
-    }
-
-    /**
-     * 将 Map 转换为 JSON 字符串
-     */
-    private String convertMapToJson(Map<String, ?> map) {
-        if (map == null) {
-            return null;
-        }
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (Exception e) {
-            log.warn("Map 转 JSON 失败: {}", e.getMessage());
-            return null;
-        }
     }
 
     /**
@@ -512,7 +488,7 @@ public class FunctionToolExecutor {
         if ("name".equals(propertyName) || "arguments".equals(propertyName)) {
             // name 和 arguments 在 function 对象中
             if (function != null) {
-                Object value = function.getClass().getMethod("get" + capitalize(propertyName)).invoke(function);
+                Object value = function.getClass().getMethod("get" + stringConversionUtils.capitalize(propertyName)).invoke(function);
                 return value != null ? value.toString() : null;
             }
         } else if ("id".equals(propertyName)) {
@@ -522,15 +498,5 @@ public class FunctionToolExecutor {
         }
         
         return null;
-    }
-
-    /**
-     * 首字母大写
-     */
-    private String capitalize(String str) {
-        if (str == null || str.isEmpty()) {
-            return str;
-        }
-        return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 }
