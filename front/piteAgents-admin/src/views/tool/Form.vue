@@ -30,12 +30,13 @@
                 placeholder="如：hello_pox 或 WeatherQuery"
                 required
                 maxlength="60"
+                :disabled="isEditMode && isBuiltinTool"
               />
               <span class="tool-hint">名称将作为大模型调用时的 function.name，请保持唯一。</span>
             </div>
             <div class="tool-form-group">
               <label>工具类型 *</label>
-              <select v-model="formData.toolType" class="tool-select" required>
+              <select v-model="formData.toolType" class="tool-select" required :disabled="isEditMode">
                 <option value="HTTP">HTTP工具 - 调用外部API</option>
                 <option value="BUILTIN">内置工具 - 系统预定义功能</option>
               </select>
@@ -79,6 +80,7 @@
               rows="3"
               required
               maxlength="200"
+              :disabled="isBuiltinTool"
             ></textarea>
           </div>
         </section>
@@ -97,6 +99,7 @@
                 class="tool-textarea"
                 rows="10"
                 placeholder='{ "type": "object", "properties": { "name": { "type": "string" } } }'
+                :disabled="isBuiltinTool"
               ></textarea>
               <span v-if="parametersError" class="json-error">{{ parametersError }}</span>
             </div>
@@ -211,6 +214,7 @@ const formData = reactive({
 })
 
 const isEditMode = computed(() => Boolean(route.params.id))
+const isBuiltinTool = computed(() => formData.toolType === 'BUILTIN')
 
 const parseJsonField = (value, errorRef, fieldName) => {
   if (!value || !value.trim()) {
@@ -269,6 +273,8 @@ const handleSubmit = async () => {
       return
     }
   }
+  
+  // 内置工具跳过 endpoint 和 method 验证
 
   let parametersPayload = null
   let headersPayload = null

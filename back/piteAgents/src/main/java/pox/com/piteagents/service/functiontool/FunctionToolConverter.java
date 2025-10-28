@@ -152,31 +152,38 @@ public class FunctionToolConverter {
     /**
      * 构建 ChatFunctionParameters
      * <p>
-     * 注意：GLM SDK 的 ChatFunctionParameters 可能有类型限制。
-     * 如果遇到问题，可以考虑使用 JSON 序列化或自定义转换。
+     * 构建符合 GLM Function Calling 规范的参数定义。
+     * 使用 JSON 序列化和反序列化的方式来绕过类型限制。
      * </p>
      */
     @SuppressWarnings("unchecked")
     private ChatFunctionParameters buildChatFunctionParameters(Map<String, Object> parametersSchema) {
-        // 简化版本：只设置 type 和 required
-        // properties 可能需要特殊的类型转换，暂时不设置
-        // GLM SDK 会自动从 Function 定义中提取参数信息
-        
-        ChatFunctionParameters.ChatFunctionParametersBuilder builder = 
-                ChatFunctionParameters.builder()
-                        .type("object");
-
-        // 提取 required 字段
-        Object required = parametersSchema.get("required");
-        if (required instanceof List) {
-            builder.required((List<String>) required);
+        if (parametersSchema == null || parametersSchema.isEmpty()) {
+            // 返回 null，让 SDK 使用默认行为
+            return null;
         }
+        
+        try {
+            // 方案：使用 ObjectMapper 进行类型转换
+            // 将 Map<String, Object> 先序列化为 JSON，再反序列化为 ChatFunctionParameters
+            String jsonString = objectMapper.writeValueAsString(parametersSchema);
+            ChatFunctionParameters params = objectMapper.readValue(jsonString, ChatFunctionParameters.class);
+            return params;
+        } catch (Exception e) {
+            log.warn("通过 JSON 转换构建参数失败: {}, 使用简化版本", e.getMessage());
+            
+            // 降级方案：只设置 type 和 required
+            ChatFunctionParameters.ChatFunctionParametersBuilder builder = 
+                    ChatFunctionParameters.builder()
+                            .type("object");
 
-        // 注意：properties 字段因类型不匹配暂时跳过
-        // 后续如果需要，可以通过 JSON 序列化方式处理
-        // 或者查看 GLM SDK 文档了解正确的设置方式
+            Object required = parametersSchema.get("required");
+            if (required instanceof List) {
+                builder.required((List<String>) required);
+            }
 
-        return builder.build();
+            return builder.build();
+        }
     }
 
     /**

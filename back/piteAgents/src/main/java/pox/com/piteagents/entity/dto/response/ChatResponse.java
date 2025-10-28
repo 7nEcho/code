@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import pox.com.piteagents.entity.dto.common.TokenUsage;
 
+import java.util.List;
+
 /**
  * 对话响应对象
  * <p>
@@ -63,5 +65,13 @@ public class ChatResponse {
      * </p>
      */
     private TokenUsage usage;
+
+    /**
+     * 工具调用记录（如果有）
+     * <p>
+     * 记录本次对话中调用的工具详情，用于前端展示工具调用过程
+     * </p>
+     */
+    private List<ToolCallRecord> toolCalls;
 }
 

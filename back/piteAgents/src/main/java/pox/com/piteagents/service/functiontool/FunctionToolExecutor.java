@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import pox.com.piteagents.common.utils.JsonUtils;
 import pox.com.piteagents.common.utils.StringConversionUtils;
+import pox.com.piteagents.common.utils.ToolCallPropertyExtractor;
 import pox.com.piteagents.entity.dto.response.AgentToolDTO;
 import pox.com.piteagents.entity.po.FunctionToolDefinitionPO;
 import pox.com.piteagents.exception.FunctionToolExecutionException;
@@ -52,6 +53,7 @@ public class FunctionToolExecutor {
     private final IFunctionToolService toolService;
     private final JsonUtils jsonUtils;
     private final StringConversionUtils stringConversionUtils;
+    private final ToolCallPropertyExtractor toolCallPropertyExtractor;
 
     /**
      * 执行工具调用（新的统一接口）
@@ -208,7 +210,18 @@ public class FunctionToolExecutor {
             if (argumentsJson == null || argumentsJson.trim().isEmpty()) {
                 return new HashMap<>();
             }
-            return objectMapper.readValue(argumentsJson, new TypeReference<Map<String, Object>>() {});
+            
+            String jsonToParse = argumentsJson.trim();
+            
+            // 处理双重引号的情况：如果整个字符串被引号包裹，先去掉外层引号
+            // 例如：argumentsJson = "\"{}\"" 或 "\"{...}\""
+            if (jsonToParse.startsWith("\"") && jsonToParse.endsWith("\"") && jsonToParse.length() >= 2) {
+                // 去掉外层引号并处理转义
+                jsonToParse = jsonToParse.substring(1, jsonToParse.length() - 1);
+                jsonToParse = jsonToParse.replace("\\\"", "\"");
+            }
+            
+            return objectMapper.readValue(jsonToParse, new TypeReference<Map<String, Object>>() {});
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("参数JSON格式错误: " + e.getMessage(), e);
         }
@@ -365,9 +378,9 @@ public class FunctionToolExecutor {
         for (Object toolCallObj : toolCalls) {
             // 使用反射获取工具调用信息（兼容不同版本的 SDK）
             try {
-                String toolName = getToolCallProperty(toolCallObj, "name");
-                String arguments = getToolCallProperty(toolCallObj, "arguments");
-                String toolCallId = getToolCallProperty(toolCallObj, "id");
+                String toolName = toolCallPropertyExtractor.getProperty(toolCallObj, "name");
+                String arguments = toolCallPropertyExtractor.getProperty(toolCallObj, "arguments");
+                String toolCallId = toolCallPropertyExtractor.getProperty(toolCallObj, "id");
 
                 log.info("执行工具调用: {}, ID: {}, 参数: {}", toolName, toolCallId, stringConversionUtils.truncate(arguments, 200));
 
@@ -384,10 +397,9 @@ public class FunctionToolExecutor {
                 log.error("工具执行失败，错误: {}", e.getMessage(), e);
 
                 // 即使工具执行失败，也要返回错误信息给 AI
-                String errorToolCallId = "unknown";
-                try {
-                    errorToolCallId = getToolCallProperty(toolCallObj, "id");
-                } catch (Exception ignored) {
+                String errorToolCallId = toolCallPropertyExtractor.getProperty(toolCallObj, "id");
+                if (errorToolCallId == null) {
+                    errorToolCallId = "unknown";
                 }
                 
                 ChatMessage errorMessage = buildToolResultMessage(
@@ -471,32 +483,4 @@ public class FunctionToolExecutor {
                 .build();
     }
 
-    /**
-     * 从工具调用对象中获取属性（兼容不同 SDK 版本）
-     * <p>
-     * 使用反射方式获取属性，避免直接依赖 SDK 的具体类型。
-     * </p>
-     */
-    private String getToolCallProperty(Object toolCall, String propertyName) throws Exception {
-        if (toolCall == null) {
-            return null;
-        }
-
-        // 尝试通过 getFunction() 获取 function 对象
-        Object function = toolCall.getClass().getMethod("getFunction").invoke(toolCall);
-        
-        if ("name".equals(propertyName) || "arguments".equals(propertyName)) {
-            // name 和 arguments 在 function 对象中
-            if (function != null) {
-                Object value = function.getClass().getMethod("get" + stringConversionUtils.capitalize(propertyName)).invoke(function);
-                return value != null ? value.toString() : null;
-            }
-        } else if ("id".equals(propertyName)) {
-            // id 在 toolCall 对象本身
-            Object value = toolCall.getClass().getMethod("getId").invoke(toolCall);
-            return value != null ? value.toString() : null;
-        }
-        
-        return null;
-    }
 }

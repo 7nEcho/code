@@ -81,6 +81,12 @@
               流式
             </button>
           </div>
+          
+          <!-- 工具调用状态提示 -->
+          <div v-if="selectedAgentId" class="tool-status-badge" title="已启用工具调用功能">
+            <WrenchIcon class="icon-sm" />
+            <span>工具已启用</span>
+          </div>
         </div>
       </header>
 
@@ -104,10 +110,36 @@
         <div v-else class="messages-wrapper">
           <div
             v-for="(message, index) in currentMessages"
-            :key="`msg-${index}-${message.content.length}`"
+            :key="`msg-${index}-${message.content?.length || 0}`"
             class="message-row"
           >
-            <div :class="['message-bubble', message.role]">
+            <!-- 工具调用消息 -->
+            <div v-if="message.role === 'tool-call'" class="tool-call-message">
+              <div class="tool-call-header">
+                <WrenchIcon class="icon-sm" />
+                <span>调用工具</span>
+              </div>
+              <div v-for="(call, idx) in message.toolCalls" :key="idx" class="tool-call-item">
+                <div class="tool-call-name">🔧 {{ call.name }}</div>
+                <div class="tool-call-info">
+                  <div class="tool-call-row">
+                    <span class="tool-call-label">参数:</span>
+                    <code class="tool-call-value">{{ formatJsonField(call.arguments) }}</code>
+                  </div>
+                  <div class="tool-call-row">
+                    <span class="tool-call-label">结果:</span>
+                    <code class="tool-call-value">{{ formatJsonField(call.result) }}</code>
+                  </div>
+                </div>
+                <details class="tool-call-details">
+                  <summary>查看完整详情</summary>
+                  <pre>{{ formatToolCallDetails(call) }}</pre>
+                </details>
+              </div>
+            </div>
+            
+            <!-- 普通消息 -->
+            <div v-else :class="['message-bubble', message.role]">
               <div class="message-content-wrapper">
                 <div class="message-avatar">
                   <UserIcon v-if="message.role === 'user'" class="icon" style="color: white" />
@@ -127,7 +159,7 @@
           <div v-if="isLoading" class="loading-indicator">
             <div class="loading-bubble">
               <div class="loading-content">
-                <div class="message-avatar" style="background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-600) 100%)">
+                <div class="message-avatar loading-avatar">
                   <CpuChipIcon class="icon" style="color: white" />
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.75rem">
@@ -182,8 +214,9 @@ import {
   ChatBubbleLeftRightIcon,
   UserIcon,
   CpuChipIcon,
+  WrenchIcon,
 } from '@heroicons/vue/24/outline'
-import { chat, streamChat, getModels } from '@/api/chat'
+import { chat, streamChat, getModels, chatWithTools } from '@/api/chat'
 import { getAgentList } from '@/api/agent'
 import { saveConversations, loadConversations } from '@/utils/storage'
 import MarkdownIt from 'markdown-it'
@@ -209,6 +242,68 @@ const md = new MarkdownIt({
 const renderMarkdown = (content) => {
   if (!content) return ''
   return md.render(content)
+}
+
+// 格式化单个 JSON 字段（用于简洁显示）
+const formatJsonField = (field) => {
+  if (!field) return '-'
+  
+  try {
+    // 如果是字符串，尝试解析为 JSON
+    if (typeof field === 'string') {
+      const parsed = JSON.parse(field)
+      return JSON.stringify(parsed, null, 2)
+    }
+    // 如果已经是对象，直接格式化
+    return JSON.stringify(field, null, 2)
+  } catch (e) {
+    // 解析失败，返回原始字符串（去除多余的引号）
+    return typeof field === 'string' ? field : String(field)
+  }
+}
+
+// 格式化工具调用详情（用于详细展开）
+const formatToolCallDetails = (call) => {
+  try {
+    const formatted = {
+      工具名称: call.name,
+      工具ID: call.id,
+      调用参数: null,
+      执行结果: null,
+      执行状态: call.success ? '✅ 成功' : '❌ 失败'
+    }
+    
+    // 尝试解析 arguments（如果是 JSON 字符串）
+    if (typeof call.arguments === 'string') {
+      try {
+        formatted.调用参数 = JSON.parse(call.arguments)
+      } catch (e) {
+        formatted.调用参数 = call.arguments
+      }
+    } else {
+      formatted.调用参数 = call.arguments || {}
+    }
+    
+    // 尝试解析 result（如果是 JSON 字符串）
+    if (typeof call.result === 'string') {
+      try {
+        formatted.执行结果 = JSON.parse(call.result)
+      } catch (e) {
+        formatted.执行结果 = call.result
+      }
+    } else {
+      formatted.执行结果 = call.result || {}
+    }
+    
+    // 如果有错误信息，添加进去
+    if (call.errorMessage) {
+      formatted.错误信息 = call.errorMessage
+    }
+    
+    return JSON.stringify(formatted, null, 2)
+  } catch (error) {
+    return JSON.stringify(call, null, 2)
+  }
 }
 
 // 状态管理
@@ -339,64 +434,139 @@ const sendMessage = async () => {
 
   try {
     if (isStreamMode.value) {
-      // 流式模式 - 关键修复：使用响应式对象
+      // 流式模式
       console.log('[ChatView] 开始流式对话')
       
-      // 创建 AI 消息对象并添加到列表
-      const assistantMessage = reactive({
-        role: 'assistant',
-        content: ''
-      })
-      currentMessages.value.push(assistantMessage)
+      // 判断是否需要工具调用（选择了 Agent）
+      const useTools = selectedAgentId.value !== null
       
-      // 强制滚动到底部
-      scrollToBottom()
-
-      await streamChat(
-        {
-          messages: buildMessages().slice(0, -1),
+      if (useTools) {
+        // 流式模式 + 工具调用：使用同步工具调用 + 流式展示结果
+        console.log('[ChatView] 流式模式下使用工具调用（混合模式）')
+        
+        // 第一步：同步调用获取工具调用结果
+        const requestData = {
+          messages: buildMessages(),
           model: selectedModel.value,
-          stream: true,
           temperature: selectedAgent.value?.config?.temperature,
           maxTokens: selectedAgent.value?.config?.maxTokens,
           topP: selectedAgent.value?.config?.topP,
-        },
-        (data) => {
-          // 接收增量数据
-          console.log('[ChatView] 收到流式数据:', data)
-          if (data.delta) {
-            console.log('[ChatView] 添加增量内容:', data.delta)
-            // 直接修改响应式对象的 content 属性
-            assistantMessage.content += data.delta
-            // 强制触发视图更新并滚动
-            nextTick(() => {
-              scrollToBottom()
-            })
-          }
-        },
-        (error) => {
-          console.error('[ChatView] 流式对话错误:', error)
-          assistantMessage.content = '抱歉，发生了错误，请稍后再试。'
-          isLoading.value = false
-        },
-        () => {
-          // 完成
-          console.log('[ChatView] 流式对话完成，最终内容长度:', assistantMessage.content.length)
-          isLoading.value = false
-          saveCurrentConversation()
+          agentId: selectedAgentId.value,
         }
-      )
+        
+        const response = await chatWithTools(requestData)
+        
+        console.log('[ChatView] 工具调用完成，收到响应:', response.data)
+        
+        // 显示工具调用记录
+        if (response.data.toolCalls && response.data.toolCalls.length > 0) {
+          console.log('[ChatView] 显示工具调用消息')
+          const toolCallMessage = {
+            role: 'tool-call',
+            toolCalls: response.data.toolCalls,
+          }
+          currentMessages.value.push(toolCallMessage)
+          scrollToBottom()
+        }
+        
+        // 显示 AI 最终回答
+        const assistantMessage = {
+          role: 'assistant',
+          content: response.data.content,
+        }
+        currentMessages.value.push(assistantMessage)
+        scrollToBottom()
+        saveCurrentConversation()
+        isLoading.value = false
+      } else {
+        // 普通流式对话（无工具）
+        console.log('[ChatView] 普通流式对话')
+        
+        // 创建 AI 消息对象并添加到列表
+        const assistantMessage = reactive({
+          role: 'assistant',
+          content: ''
+        })
+        currentMessages.value.push(assistantMessage)
+        
+        // 强制滚动到底部
+        scrollToBottom()
+
+        await streamChat(
+          {
+            messages: buildMessages().slice(0, -1),
+            model: selectedModel.value,
+            stream: true,
+            temperature: selectedAgent.value?.config?.temperature,
+            maxTokens: selectedAgent.value?.config?.maxTokens,
+            topP: selectedAgent.value?.config?.topP,
+          },
+          (data) => {
+            // 接收增量数据
+            console.log('[ChatView] 收到流式数据:', data)
+            if (data.delta) {
+              console.log('[ChatView] 添加增量内容:', data.delta)
+              // 直接修改响应式对象的 content 属性
+              assistantMessage.content += data.delta
+              // 强制触发视图更新并滚动
+              nextTick(() => {
+                scrollToBottom()
+              })
+            }
+          },
+          (error) => {
+            console.error('[ChatView] 流式对话错误:', error)
+            assistantMessage.content = '抱歉，发生了错误，请稍后再试。'
+            isLoading.value = false
+          },
+          () => {
+            // 完成
+            console.log('[ChatView] 流式对话完成，最终内容长度:', assistantMessage.content.length)
+            isLoading.value = false
+            saveCurrentConversation()
+          }
+        )
+      }
     } else {
       // 同步模式
       console.log('[ChatView] 开始同步对话')
-      const response = await chat({
+      
+      // 判断是否使用工具调用接口
+      const useTools = selectedAgentId.value !== null
+      const apiFunction = useTools ? chatWithTools : chat
+      
+      const requestData = {
         messages: buildMessages(),
         model: selectedModel.value,
         temperature: selectedAgent.value?.config?.temperature,
         maxTokens: selectedAgent.value?.config?.maxTokens,
         topP: selectedAgent.value?.config?.topP,
-      })
+      }
+      
+      // 如果使用工具，添加 agentId
+      if (useTools) {
+        requestData.agentId = selectedAgentId.value
+      }
+      
+      const response = await apiFunction(requestData)
+      
+      console.log('[ChatView] 收到响应:', response.data)
+      console.log('[ChatView] 工具调用记录:', response.data.toolCalls)
+      console.log('[ChatView] AI 回答内容:', response.data.content)
 
+      // 如果响应包含工具调用信息，先显示工具调用
+      if (response.data.toolCalls && response.data.toolCalls.length > 0) {
+        console.log('[ChatView] 显示工具调用消息')
+        const toolCallMessage = {
+          role: 'tool-call',
+          toolCalls: response.data.toolCalls,
+        }
+        currentMessages.value.push(toolCallMessage)
+        scrollToBottom()
+      }
+
+      // 显示 AI 的最终回答
+      console.log('[ChatView] 显示 AI 回答')
       const assistantMessage = {
         role: 'assistant',
         content: response.data.content,

@@ -46,101 +46,72 @@ import {
 </script>
 
 <style scoped>
-/* CSS 变量定义 */
+/* 导航栏样式 - 扁平化设计 */
+
 :root {
-  /* 主题色 */
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  
-  --secondary-600: #4f46e5;
-  
-  /* 中性色 */
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-500: #6b7280;
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  
-  /* 间距 */
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  
-  /* 圆角 */
-  --radius-lg: 0.75rem;
-  
-  /* 阴影 */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  
-  /* 过渡 */
-  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --primary-color: #1976d2;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --text-hint: #999;
+  --border-color: #e0e0e0;
+  --bg-white: #fff;
+  --bg-light: #f5f5f5;
 }
 
 .navbar {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--gray-200);
-  box-shadow: var(--shadow-sm);
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .navbar-container {
   max-width: 1920px;
   margin: 0 auto;
-  padding: 0 clamp(1rem, 3vw, 2rem);
-  height: 64px;
+  padding: 0 24px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-xl);
+  gap: 32px;
 }
 
 /* 品牌区域 */
 .navbar-brand {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 12px;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .navbar-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-600) 100%);
+  width: 36px;
+  height: 36px;
+  background: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-md);
 }
 
 .logo-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   color: white;
 }
 
 .navbar-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--primary-color);
 }
 
 /* 导航菜单 */
 .navbar-menu {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 8px;
   flex: 1;
   justify-content: center;
 }
@@ -148,75 +119,69 @@ import {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  font-size: 0.9375rem;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--gray-600);
+  color: var(--text-secondary);
   text-decoration: none;
-  transition: all var(--transition-base);
   position: relative;
+  background: transparent;
+  border: none;
 }
 
 .nav-item:hover {
-  color: var(--primary-600);
-  background: var(--gray-50);
+  color: var(--text-primary);
 }
 
 .nav-item.active {
-  color: var(--primary-600);
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+  color: var(--primary-color);
 }
 
 .nav-item.active::after {
   content: '';
   position: absolute;
   bottom: -1px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40%;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary-500) 0%, var(--secondary-600) 100%);
-  border-radius: 2px 2px 0 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary-color);
 }
 
 .nav-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 /* 右侧区域 */
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 16px;
   flex-shrink: 0;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-lg);
+  padding: 6px;
   cursor: pointer;
-  transition: all var(--transition-base);
 }
 
 .user-info:hover {
-  background: var(--gray-50);
+  opacity: 0.7;
 }
 
 .user-icon {
-  width: 28px;
-  height: 28px;
-  color: var(--gray-500);
+  width: 24px;
+  height: 24px;
+  color: var(--text-secondary);
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .navbar-container {
-    padding: 0 1rem;
+    padding: 0 16px;
     height: 56px;
   }
 
@@ -225,11 +190,11 @@ import {
   }
 
   .navbar-menu {
-    gap: 0.25rem;
+    gap: 4px;
   }
 
   .nav-item {
-    padding: var(--spacing-sm);
+    padding: 8px;
   }
 
   .nav-item span {
@@ -237,8 +202,8 @@ import {
   }
 
   .nav-icon {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
   }
 }
 </style>

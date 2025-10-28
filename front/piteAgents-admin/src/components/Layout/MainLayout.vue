@@ -19,17 +19,14 @@ import NavBar from './NavBar.vue'
 </script>
 
 <style scoped>
-/* CSS 变量定义 */
-:root {
-  /* 过渡 */
-  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* 主布局样式 - 扁平化设计 */
 
 .main-layout {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: #fff;
 }
 
 .main-content-wrapper {
@@ -38,10 +35,10 @@ import NavBar from './NavBar.vue'
   position: relative;
 }
 
-/* 页面切换动画 */
+/* 页面切换动画 - 简化 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity var(--transition-base);
+  transition: opacity 200ms ease;
 }
 
 .fade-enter-from,

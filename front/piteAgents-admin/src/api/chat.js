@@ -104,3 +104,16 @@ export function getModels() {
   })
 }
 
+/**
+ * 带工具调用的对话
+ * @param {Object} data - 对话请求参数
+ * @returns {Promise}
+ */
+export function chatWithTools(data) {
+  return request({
+    url: '/api/chat/with-tools',
+    method: 'post',
+    data,
+  })
+}
+

@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
  * 对话服务实现类
  * <p>
  * 提供会话和消息管理功能的具体实现。
- * 使用 MyBatis-Plus 进行数据访问。
  * </p>
  *
  * @author piteAgents

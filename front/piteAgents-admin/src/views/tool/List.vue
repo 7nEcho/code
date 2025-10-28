@@ -62,11 +62,12 @@
                 </div>
               </td>
               <td>
-                <div class="tool-method">
+                <div v-if="tool.toolType === 'HTTP'" class="tool-method">
                   <BoltIcon class="icon-sm" />
                   {{ tool.method }}
                 </div>
-                <div class="tool-endpoint">{{ tool.endpoint }}</div>
+                <div v-if="tool.toolType === 'HTTP'" class="tool-endpoint">{{ tool.endpoint }}</div>
+                <div v-if="tool.toolType === 'BUILTIN'" class="tool-hint">内置工具，无需配置端点</div>
               </td>
               <td>
                 <span

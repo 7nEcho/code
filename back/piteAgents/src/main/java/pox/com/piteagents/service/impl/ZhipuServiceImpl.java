@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import pox.com.piteagents.common.utils.ToolCallPropertyExtractor;
 import pox.com.piteagents.config.ZhipuConfig;
 import pox.com.piteagents.common.constant.FinishReason;
 import pox.com.piteagents.entity.dto.common.Message;
@@ -15,6 +16,7 @@ import pox.com.piteagents.entity.dto.request.ChatRequest;
 import pox.com.piteagents.entity.dto.response.ChatResponse;
 import pox.com.piteagents.entity.dto.response.StreamChatResponse;
 import pox.com.piteagents.common.enums.ZhipuModelEnum;
+import pox.com.piteagents.entity.dto.response.ToolCallRecord;
 import pox.com.piteagents.exception.ZhipuApiException;
 import pox.com.piteagents.service.IZhipuService;
 import pox.com.piteagents.service.functiontool.FunctionToolExecutor;
@@ -49,11 +51,15 @@ public class ZhipuServiceImpl implements IZhipuService {
      */
     private final ZhipuConfig zhipuConfig;
 
-
     /**
      * 简化工具执行器（新版本）
      */
     private final FunctionToolExecutor functionToolExecutor;
+
+    /**
+     * 工具调用属性提取器
+     */
+    private final ToolCallPropertyExtractor toolCallPropertyExtractor;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
@@ -197,7 +203,7 @@ public class ZhipuServiceImpl implements IZhipuService {
      * <p>
      * 将业务层的请求对象转换为SDK所需的请求格式。
      * 处理默认值填充、参数校验等逻辑。
-     * 参考官方文档: https://docs.bigmodel.cn/cn/guide/models/text/glm-4.5#java
+     * 参考官方文档: <a href="https://docs.bigmodel.cn/cn/guide/models/text/glm-4.5#java">...</a>
      * </p>
      *
      * @param request 业务请求对象
@@ -266,7 +272,7 @@ public class ZhipuServiceImpl implements IZhipuService {
                     request.getModel() != null ? request.getModel() : zhipuConfig.getDefaultModel(),
                     request.getAgentId());
 
-            // 1. 加载 Agent 的工具列表（委托给 FunctionToolExecutor）
+            // 1. 加载 Agent 的工具列表
             List<ChatTool> tools = functionToolExecutor.loadAgentTools(request.getAgentId());
             
             if (tools.isEmpty()) {
@@ -276,6 +282,14 @@ public class ZhipuServiceImpl implements IZhipuService {
             }
 
             log.info("加载到 {} 个工具", tools.size());
+            
+            // 打印工具定义详情
+            for (ChatTool tool : tools) {
+                log.debug("工具定义: name={}, description={}, parameters={}", 
+                        tool.getFunction().getName(),
+                        tool.getFunction().getDescription(),
+                        tool.getFunction().getParameters());
+            }
 
             // 2. 构建带工具的请求
             ChatCompletionCreateParams requestWithTools = buildChatRequestWithTools(request, tools);
@@ -296,13 +310,40 @@ public class ZhipuServiceImpl implements IZhipuService {
             if (toolCalls != null && !toolCalls.isEmpty()) {
                 log.info("AI 请求调用工具，数量: {}", toolCalls.size());
 
-                // 5. 执行所有工具调用（委托给 FunctionToolExecutor）
+                // 记录工具调用信息
+                List<ToolCallRecord> toolCallRecords = new ArrayList<>();
+
+                // 5. 执行所有工具调用
                 List<ChatMessage> toolResultMessages = functionToolExecutor.executeToolCalls(
                         toolCalls, request.getAgentId());
                 
+                // 记录每个工具调用的详情
+                for (int i = 0; i < toolCalls.size(); i++) {
+                    try {
+                        Object toolCall = toolCalls.get(i);
+                        String toolCallId = toolCallPropertyExtractor.getProperty(toolCall, "id");
+                        String toolName = toolCallPropertyExtractor.getProperty(toolCall, "name");
+                        String arguments = toolCallPropertyExtractor.getProperty(toolCall, "arguments");
+                        
+                        // 获取对应的工具结果
+                        String result = i < toolResultMessages.size() ? 
+                                toolResultMessages.get(i).getContent().toString() : "";
+                        
+                        toolCallRecords.add(pox.com.piteagents.entity.dto.response.ToolCallRecord.builder()
+                                .id(toolCallId)
+                                .name(toolName)
+                                .arguments(arguments)
+                                .result(result)
+                                .success(true)
+                                .build());
+                    } catch (Exception e) {
+                        log.error("记录工具调用失败: {}", e.getMessage());
+                    }
+                }
+                
                 // 6. 构建包含工具结果的完整上下文
-                List<ChatMessage> messagesWithToolResult = new ArrayList<>();
-                messagesWithToolResult.addAll(convertMessages(request.getMessages())); // 原始对话
+                // 添加工具调用结果提供给 AI
+                List<ChatMessage> messagesWithToolResult = new ArrayList<>(convertMessages(request.getMessages())); // 原始对话
                 messagesWithToolResult.add(message); // AI的工具调用请求
                 messagesWithToolResult.addAll(toolResultMessages); // 所有工具结果
                 
@@ -328,7 +369,11 @@ public class ZhipuServiceImpl implements IZhipuService {
                 }
 
                 ChatResponse finalResponse = convertResponse(response2);
-                log.info("工具调用对话完成，最终响应ID: {}", finalResponse.getId());
+                // 添加工具调用记录
+                finalResponse.setToolCalls(toolCallRecords);
+                log.info("工具调用对话完成，最终响应ID: {}, 调用工具数: {}", 
+                        finalResponse.getId(), toolCallRecords.size());
+                log.info("AI 最终回答: {}", finalResponse.getContent());
                 
                 return finalResponse;
             } else {
@@ -464,5 +509,6 @@ public class ZhipuServiceImpl implements IZhipuService {
                 .usage(usage)
                 .build();
     }
+
 }
 
