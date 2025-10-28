@@ -12,6 +12,7 @@ target/
 build/
 coverage/
 *.log
+.gitignore
 
 
 .npmrc
